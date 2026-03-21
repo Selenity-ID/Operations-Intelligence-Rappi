@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rappi Operations Bot</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    /* --- Variables Globales de Rappi --- */
+    :root {
+      --rappi-orange: #FF441F;
+      --rappi-orange-hover: #E33C1B;
+      --rappi-white: #FFFFFF;
+      --rappi-gray-bg: #F5F5F7;
+      --rappi-gray-card: #FFFFFF;
+      --rappi-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --rappi-text-primary: #030303;
+      --rappi-text-secondary: #737373;
+      --rappi-shadow-bubble: 0 2px 6px rgba(0, 0, 0, 0.05);
+      --rappi-radius-bubble: 18px;
+    }
+
+    body {
+      font-family: var(--rappi-font-family);
+      background-color: var(--rappi-gray-bg);
+      color: var(--rappi-text-primary);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* --- Header --- */
+    .rappi-header {
+      background-color: var(--rappi-orange);
+      color: var(--rappi-white);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      z-index: 200;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .menu-btn {
+      background: none;
+      border: none;
+      color: var(--rappi-white);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .rappi-logo {
+      height: 28px;
+      object-fit: contain;
+    }
+
+    .rappi-header h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .header-badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* --- Layout Principal & Sidebar --- */
+    .app-wrapper {
+      display: flex;
+      flex: 1;
+      position: relative;
+      height: calc(100vh - 60px);
+    }
+
+    .rappi-sidebar {
+      width: 260px;
+      background-color: var(--rappi-white);
+      border-right: 1px solid #EAEAEA;
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -260px;
+      z-index: 100;
+      transition: left 0.3s ease;
+      box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .rappi-sidebar.open {
+      left: 0;
+    }
+
+    .sidebar-menu {
+      list-style: none;
+      padding: 16px 0;
+      margin: 0;
+    }
+
+    .sidebar-item {
+      padding: 16px 24px;
+      cursor: pointer;
+      color: var(--rappi-text-primary);
+      font-weight: 500;
+      font-size: 15px;
+      transition: all 0.2s;
+      border-left: 4px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sidebar-item:hover,
+    .sidebar-item.active {
+      background-color: rgba(255, 68, 31, 0.05);
+      color: var(--rappi-orange);
+    }
+
+    .sidebar-item.active {
+      border-left-color: var(--rappi-orange);
+    }
+
+    @media (min-width: 768px) {
+      .rappi-sidebar {
+        position: static;
+        margin-left: -260px;
+        box-shadow: none;
+      }
+
+      .rappi-sidebar.open {
+        margin-left: 0;
+      }
+    }
+
+    /* --- Área de Contenido Central --- */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      background-color: var(--rappi-gray-bg);
+    }
+
+    .section-container {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .section-container.active {
+      display: flex;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* --- Chat UI --- */
+    .rappi-card {
+      background-color: var(--rappi-white);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .chat-header-bar {
+      padding: 12px 24px;
+      background: #FDFDFD;
+      border-bottom: 1px solid #EAEAEA;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header-bar h3 {
+      margin: 0;
+      font-size: 15px;
+      color: var(--rappi-text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn-help {
+      background: none;
+      border: none;
+      color: var(--rappi-orange);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+
+    .icon-btn-help:hover {
+      transform: scale(1.1);
+    }
+
+    .rappi-chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .rappi-bubble {
+      padding: 12px 16px;
+      border-radius: var(--rappi-radius-bubble);
+      box-shadow: var(--rappi-shadow-bubble);
+      max-width: 85%;
+      font-size: 15px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .rappi-bubble-user {
+      background-color: var(--rappi-orange);
+      color: var(--rappi-white);
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .rappi-bubble-bot {
+      background-color: var(--rappi-white);
+      color: var(--rappi-text-primary);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      border: 1px solid #EDEDED;
+    }
+
+    .rappi-chat-input-area {
+      padding: 16px 24px;
+      border-top: 1px solid #EDEDED;
+      display: flex;
+      gap: 12px;
+      background-color: var(--rappi-white);
+    }
+
+    .rappi-chat-input {
+      flex: 1;
+      padding: 14px 18px;
+      border: 1px solid #DEDEDE;
+      border-radius: 25px;
+      font-size: 15px;
+      transition: all 0.2s;
+    }
+
+    .rappi-chat-input:focus {
+      outline: none;
+      border-color: var(--rappi-orange);
+      box-shadow: 0 0 0 2px rgba(255, 68, 31, 0.1);
+    }
+
+    .rappi-button-primary {
+      background-color: var(--rappi-orange);
+      color: var(--rappi-white);
+      border: none;
+      padding: 0 24px;
+      border-radius: 25px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .rappi-button-primary:hover {
+      background-color: var(--rappi-orange-hover);
+    }
+
+    /* --- Animación de Carga IA (Morphing Icons) --- */
+    .typing-indicator {
+      font-size: 13px;
+      color: var(--rappi-orange);
+      align-self: flex-start;
+      margin-left: 24px;
+      margin-bottom: 12px;
+      font-weight: 500;
+      display: none;
+      /* Oculto por defecto */
+      align-items: center;
+      gap: 8px;
+    }
+
+    .morph-icon {
+      font-size: 18px;
+      animation: iconPulse 0.8s infinite alternate ease-in-out;
+    }
+
+    @keyframes iconPulse {
+      0% {
+        transform: scale(0.8);
+        opacity: 0.5;
+      }
+
+      100% {
+        transform: scale(1.1);
+        opacity: 1;
+      }
+    }
+
+    /* --- Dashboard UI --- */
+    .dashboard-content {
+      padding: 24px 32px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Banner de Alertas */
+    .alert-banner {
+      background: #FFF4F2;
+      border-left: 4px solid #F44336;
+      padding: 12px 16px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      color: #D32F2F;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(244, 67, 54, 0.1);
+    }
+
+    .alert-banner .material-icons-outlined {
+      font-size: 22px;
+    }
+
+    .dash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .dash-header h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    /* --- Filtros Dinámicos con Checkboxes --- */
+    .dash-filters {
+      display: flex;
+      gap: 12px;
+    }
+
+    .custom-dropdown {
+      position: relative;
+      display: inline-block;
+      font-size: 14px;
+    }
+
+    .dropdown-toggle {
+      padding: 10px 16px;
+      border-radius: 20px;
+      border: 1px solid #EAEAEA;
+      background: var(--rappi-white);
+      font-family: inherit;
+      color: var(--rappi-text-secondary);
+      outline: none;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+      transition: all 0.3s;
+      cursor: pointer;
+      min-width: 200px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+
+    .dropdown-toggle:hover {
+      border-color: var(--rappi-orange);
+      color: var(--rappi-text-primary);
+    }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: var(--rappi-white);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-radius: 12px;
+      border: 1px solid #EAEAEA;
+      z-index: 1000;
+      min-width: 100%;
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 8px 0;
+      margin-top: 8px;
+    }
+
+    .dropdown-menu.show {
+      display: block;
+      animation: dropFade 0.2s ease-out;
+    }
+
+    @keyframes dropFade {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .dropdown-item {
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      color: var(--rappi-text-primary);
+      transition: background 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background-color: rgba(255, 68, 31, 0.05);
+    }
+
+    .dropdown-item input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--rappi-orange);
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+
+    .dash-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--rappi-white);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+      border-left: 4px solid var(--rappi-orange);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .kpi-title {
+      font-size: 13px;
+      color: var(--rappi-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--rappi-text-primary);
+      margin: 0;
+    }
+
+    .kpi-trend {
+      font-size: 13px;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    .trend-up {
+      color: #00C853;
+    }
+
+    .trend-down {
+      color: #F44336;
+    }
+
+    .dash-charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .chart-card {
+      background: var(--rappi-white);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+    }
+
+    .chart-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--rappi-text-primary);
+      margin-top: 0;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .offenders-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .offenders-table th {
+      background: #FFF4F2;
+      color: var(--rappi-orange);
+      padding: 12px;
+      text-align: left;
+      font-size: 13px;
+      border-radius: 4px;
+    }
+
+    .offenders-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #F0F0F0;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .badge-negative {
+      background: rgba(244, 67, 54, 0.1);
+      color: #F44336;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1024px) {
+      .dash-charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* --- UI Pitch Deck (Presentación Interactiva) --- */
+    .pitch-content {
+      padding: 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .pitch-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .pitch-header h2 {
+      font-size: 32px;
+      color: var(--rappi-orange);
+      margin-bottom: 8px;
+    }
+
+    .pitch-header p {
+      font-size: 18px;
+      color: var(--rappi-text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .bento-card {
+      background: var(--rappi-white);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+      border: 1px solid #EAEAEA;
+      transition: all 0.3s;
+    }
+
+    .bento-card:hover {
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+      border-color: var(--rappi-orange);
+    }
+
+    .bento-card.large {
+      grid-column: span 2;
+    }
+
+    .bento-card.full {
+      grid-column: span 3;
+    }
+
+    .bento-icon {
+      background: rgba(255, 68, 31, 0.1);
+      color: var(--rappi-orange);
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .bento-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--rappi-text-primary);
+    }
+
+    .bento-text {
+      font-size: 14px;
+      color: var(--rappi-text-secondary);
+      line-height: 1.6;
+    }
+
+    .bento-list {
+      padding-left: 20px;
+      font-size: 14px;
+      color: var(--rappi-text-secondary);
+      line-height: 1.6;
+    }
+
+    .bento-list li {
+      margin-bottom: 8px;
+    }
+
+    .tech-stack {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .tech-badge {
+      background: #F0F0F0;
+      color: #333;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .flow-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #FDFDFD;
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px dashed #CCC;
+      margin-top: 16px;
+      overflow-x: auto;
+    }
+
+    .flow-node {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--rappi-text-primary);
+    }
+
+    .flow-icon {
+      width: 60px;
+      height: 60px;
+      background: var(--rappi-white);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      margin: 0 auto 8px;
+      border: 2px solid var(--rappi-orange);
+      color: var(--rappi-orange);
+    }
+
+    .flow-arrow {
+      color: #CCC;
+      font-size: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bento-card.large,
+      .bento-card.full {
+        grid-column: span 1;
+      }
+
+      .flow-diagram {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .flow-arrow {
+        transform: rotate(90deg);
+      }
+    }
+
+    /* --- Tooltips e Info --- */
+    .info-tooltip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      cursor: help;
+      color: #A0A0A0;
+      margin-left: 4px;
+    }
+
+    .info-tooltip .material-icons-outlined {
+      font-size: 16px;
+      transition: color 0.2s;
+    }
+
+    .info-tooltip:hover .material-icons-outlined {
+      color: var(--rappi-orange);
+    }
+
+    .info-tooltip .tooltip-text {
+      visibility: hidden;
+      width: 220px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px 12px;
+      position: absolute;
+      z-index: 1000;
+      bottom: 130%;
+      left: 50%;
+      margin-left: -120px;
+      opacity: 0;
+      transition: opacity 0.3s, bottom 0.3s;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.4;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      text-transform: none;
+      letter-spacing: normal;
+    }
+
+    .info-tooltip .tooltip-text::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #333 transparent transparent transparent;
+    }
+
+    .info-tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+      bottom: 150%;
+    }
+
+    /* --- Modal de Ayuda --- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 3000;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content {
+      background: var(--rappi-white);
+      padding: 32px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 450px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      position: relative;
+      transform: translateY(20px);
+      transition: transform 0.3s;
+    }
+
+    .modal-overlay.show .modal-content {
+      transform: translateY(0);
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #A0A0A0;
+    }
+
+    .close-modal:hover {
+      color: var(--rappi-orange);
+    }
+
+    .modal-title {
+      margin-top: 0;
+      color: var(--rappi-text-primary);
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid #F0F0F0;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .modal-body {
+      font-size: 14px;
+      color: var(--rappi-text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Footer y PDF export */
+    .rappi-footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--rappi-text-secondary);
+      background-color: var(--rappi-white);
+      border-top: 1px solid #EAEAEA;
+    }
+
+    .rappi-report-card {
+      background: var(--rappi-white);
+      border: 1px solid #EAEAEA;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+      color: var(--rappi-text-primary);
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .rappi-report-title {
+      margin-top: 0;
+      color: var(--rappi-orange);
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .rappi-report-summary {
+      font-size: 14px;
+      color: var(--rappi-text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .rappi-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .rappi-table tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+
+    .rappi-table th {
+      background-color: var(--rappi-gray-bg);
+      color: var(--rappi-text-secondary);
+      text-align: left;
+      padding: 10px 12px;
+      font-weight: 600;
+      border-radius: 4px;
+    }
+
+    .rappi-table td {
+      padding: 12px;
+      border-bottom: 1px solid #EAEAEA;
+    }
+
+    .rappi-bar-container {
+      width: 100%;
+      background-color: #F0F0F0;
+      border-radius: 4px;
+      height: 8px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .rappi-bar {
+      height: 100%;
+      background-color: var(--rappi-orange);
+      border-radius: 4px;
+      transition: width 0.5s ease-in-out;
+    }
+
+    .rappi-report-footer {
+      background-color: rgba(255, 68, 31, 0.05);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      border-left: 3px solid var(--rappi-orange);
+    }
+
+    .btn-pdf {
+      margin-top: 16px;
+      background-color: var(--rappi-white);
+      color: var(--rappi-orange);
+      border: 1px solid var(--rappi-orange);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    /* --- Tabla Detallada (Data Grid) --- */
+    .detailed-table-card {
+      background: var(--rappi-white);
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+      margin-bottom: 24px;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+      margin-top: 16px;
+      border-radius: 8px;
+      border: 1px solid #EAEAEA;
+    }
+
+    .rappi-data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .rappi-data-table th {
+      background: #FDFDFD;
+      padding: 14px 16px;
+      font-size: 12px;
+      color: var(--rappi-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #EAEAEA;
+      position: sticky;
+      top: 0;
+    }
+
+    .rappi-data-table td {
+      padding: 14px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid #F0F0F0;
+      color: var(--rappi-text-primary);
+      font-weight: 500;
+    }
+
+    .rappi-data-table tbody tr:hover {
+      background-color: rgba(255, 68, 31, 0.03);
+    }
+
+    .badge-positive {
+      background: rgba(0, 200, 83, 0.1);
+      color: #00C853;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="rappi-header">
+    <div class="header-left">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <img src="https://marketing.rappi.com.mx/img/logo.png" alt="Rappi Logo" class="rappi-logo">
+      <h1>Operations Intelligence</h1>
+    </div>
+    <div class="header-badge">TEST BUILD V1.0</div>
+  </header>
+
+  <div class="app-wrapper">
+    <aside class="rappi-sidebar open" id="sidebar">
+      <ul class="sidebar-menu">
+        <li class="sidebar-item active" onclick="switchSection('chat', this)">
+          <span class="material-icons-outlined">support_agent</span> Asistente Operativo
+        </li>
+        <li class="sidebar-item" onclick="switchSection('dashboard', this)">
+          <span class="material-icons-outlined">dashboard</span> Dashboard Visual
+        </li>
+        <li class="sidebar-item" onclick="switchSection('pitch', this)"
+          style="margin-top: 16px; border-top: 1px solid #EAEAEA; padding-top: 24px;">
+          <span class="material-icons-outlined">rocket_launch</span> Arquitectura & Pitch
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+
+      <section id="chatSection" class="section-container active">
+        <div class="rappi-card">
+          <div class="chat-header-bar">
+            <h3><span class="material-icons-outlined" style="color:var(--rappi-orange)">smart_toy</span> Asistente
+              Analítico IA</h3>
+            <button class="icon-btn-help" onclick="openModal()" title="¿Cómo usar este bot?"><span class="material-icons-outlined">help</span></button>
+          </div>
+          <div class="rappi-chat-history" id="chatHistory">
+            <div class="rappi-bubble rappi-bubble-bot">
+              Hola. Soy tu Asistente de Operaciones impulsado por IA. ¿Qué métricas, zonas o tendencias quieres analizar
+              hoy?
+            </div>
+          </div>
+          <div class="typing-indicator" id="typingIndicator">
+            <span class="material-icons-outlined morph-icon" id="loadingIcon">memory</span>
+            <span id="loadingText">Procesando reglas de negocio...</span>
+          </div>
+          <div class="rappi-chat-input-area">
+            <input type="text" id="userInput" class="rappi-chat-input" placeholder="Ej: Genera un reporte de anomalías" onkeypress="handleKeyPress(event)">
+            <button id="sendBtn" class="rappi-button-primary" onclick="sendMessage()">Enviar</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="dashboardSection" class="section-container">
+        <div class="dashboard-content">
+
+          <div class="alert-banner" id="dashAlertBanner" style="display: none;">
+            <span class="material-icons-outlined">warning_amber</span>
+            <span id="alertBannerText">Cargando estado operacional...</span>
+          </div>
+
+          <div class="dash-header">
+            <h2>Operations Analytics</h2>
+            <div class="dash-filters">
+
+              <div class="custom-dropdown">
+                <button class="dropdown-toggle" id="btnCountry" onclick="toggleDropdown('menuCountry', event)">
+                  <span id="textCountry">🌍 Países (Todos)</span>
+                  <span class="material-icons-outlined" style="font-size:16px">expand_more</span>
+                </button>
+                <div class="dropdown-menu" id="menuCountry">
+                </div>
+              </div>
+
+              <div class="custom-dropdown">
+                <button class="dropdown-toggle" id="btnZoneType" onclick="toggleDropdown('menuZoneType', event)">
+                  <span id="textZoneType">📍 Tipos de Zona (Todos)</span>
+                  <span class="material-icons-outlined" style="font-size:16px">expand_more</span>
+                </button>
+                <div class="dropdown-menu" id="menuZoneType">
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="dash-kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-title"><span class="material-icons-outlined">shopping_bag</span> Órdenes Totales <div
+                  class="info-tooltip">
+                  <span class="material-icons-outlined">info</span><span class="tooltip-text">Volumen total de pedidos entregados en la semana actual (L0W).</span>
+                </div>
+              </div>
+              <p class="kpi-value" id="kpi-orders">Cargando...</p>
+              <div class="kpi-trend" id="kpi-wow">--</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title"><span class="material-icons-outlined">attach_money</span> Gross Profit UE <div
+                  class="info-tooltip">
+                  <span class="material-icons-outlined">info</span><span class="tooltip-text">Utilidad bruta promedio por orden (Unit Economics).</span>
+                </div>
+              </div>
+              <p class="kpi-value" id="kpi-profit">Cargando...</p>
+              <div class="kpi-trend trend-up">Rentabilidad global positiva</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: #00C853;">
+              <div class="kpi-title"><span class="material-icons-outlined">storefront</span> Retail CVR <div
+                  class="info-tooltip">
+                  <span class="material-icons-outlined">info</span><span class="tooltip-text">Tasa de conversión de búsqueda a sesión en tiendas Retail.</span>
+                </div>
+              </div>
+              <p class="kpi-value">0.78%</p>
+              <div class="kpi-trend trend-up">▲ 0.05% vs L1W</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: #7B1FA2;">
+              <div class="kpi-title"><span class="material-icons-outlined">stars</span> Breakeven PRO <div
+                  class="info-tooltip">
+                  <span class="material-icons-outlined">info</span><span class="tooltip-text">Porcentaje de usuarios suscritos que recuperan su membresía.</span>
+                </div>
+              </div>
+              <p class="kpi-value">42.5%</p>
+              <div class="kpi-trend trend-up">▲ 1.2% de retención</div>
+            </div>
+          </div>
+
+          <div class="dash-charts-grid">
+            <div class="chart-card">
+              <h3 class="chart-title">Evolución de Demanda <div class="info-tooltip">
+                  <span class="material-icons-outlined">info</span><span class="tooltip-text">Curva de crecimiento del volumen de órdenes de las últimas 8 semanas.</span>
+                </div>
+              </h3>
+              <div id="mainEvolutionChart"></div>
+            </div>
+            <div class="chart-card">
+              <h3 class="chart-title">Top Offenders: Profit <div class="info-tooltip">
+                  <span class="material-icons-outlined">info</span><span class="tooltip-text">Las 5 zonas críticas con el Gross Profit UE más negativo.</span>
+                </div>
+              </h3>
+              <table class="offenders-table">
+                <thead>
+                  <tr>
+                    <th>Ciudad</th>
+                    <th>Zona</th>
+                    <th>GP UE</th>
+                  </tr>
+                </thead>
+                <tbody id="offenders-body">
+                  <tr>
+                    <td colspan="3" style="text-align:center;">Cargando anomalías...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="detailed-table-card">
+            <h3 class="chart-title">
+              Detalle Operacional por Zona
+              <div class="info-tooltip">
+                <span class="material-icons-outlined">info</span><span class="tooltip-text">Vista detallada de las métricas por zona. Muestra el Top 100 según los filtros aplicados.</span>
+              </div>
+            </h3>
+            <div class="table-responsive">
+              <table class="rappi-data-table">
+                <thead>
+                  <tr>
+                    <th>País</th>
+                    <th>Ciudad</th>
+                    <th>Zona</th>
+                    <th>Tipo de Zona</th>
+                    <th>Gross Profit UE</th>
+                  </tr>
+                </thead>
+                <tbody id="detailed-table-body">
+                  <tr>
+                    <td colspan="5" style="text-align:center;">Cargando detalles...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pitchSection" class="section-container">
+        <div class="pitch-content">
+          <div class="pitch-header">
+            <h2>Resolución del Caso Técnico</h2>
+            <p>Democratización de datos operacionales mediante Inteligencia Artificial y automatización de procesos.</p>
+          </div>
+
+          <div class="bento-grid">
+            <div class="bento-card large">
+              <div class="bento-icon"><span class="material-icons-outlined">flag</span></div>
+              <h3 class="bento-title">El Desafío de Negocio</h3>
+              <p class="bento-text">Los equipos de Strategy, Planning & Analytics (SP&A) en Rappi invierten horas en
+                extraer respuestas de negocio de miles de filas de datos, requiriendo habilidades técnicas (SQL/Python).
+                El objetivo de este MVP es <strong>eliminar la fricción técnica</strong>, permitiendo a cualquier
+                Operational Manager obtener insights, detectar anomalías y visualizar tendencias usando únicamente
+                lenguaje natural.</p>
+            </div>
+
+            <div class="bento-card">
+              <div class="bento-icon"><span class="material-icons-outlined">layers</span></div>
+              <h3 class="bento-title">Tech Stack Elegido</h3>
+              <p class="bento-text">Arquitectura 100% Serverless enfocada en despliegue ágil y escalabilidad.</p>
+              <div class="tech-stack">
+                <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">javascript</span>
+                JS (V8 Engine)</span>
+                <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">api</span> Gemini
+                2.5 Flash</span>
+                <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">bar_chart</span>
+                ApexCharts</span>
+                <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">cloud</span>
+                Google Apps Script</span>
+              </div>
+            </div>
+
+            <div class="bento-card full">
+              <div class="bento-icon"><span class="material-icons-outlined">account_tree</span></div>
+              <h3 class="bento-title">Arquitectura de Procesamiento (El "Orquestador IA")</h3>
+              <p class="bento-text">Para evitar los límites de tokens y las alucinaciones comunes al pasar grandes bases
+                de datos a un LLM, se implementó un pipeline de dos fases. El motor de JavaScript nativo se encarga de
+                la matemática pesada (ordenamiento y cálculos de >12,000 registros), mientras que la IA se enfoca
+                estrictamente en el enrutamiento semántico y la generación de reportes HTML.</p>
+
+              <div class="flow-diagram">
+                <div class="flow-node">
+                  <div class="flow-icon"><span class="material-icons-outlined">person</span></div>
+                  Usuario<br><span style="color:#737373; font-weight:normal;">Lenguaje Natural</span>
+                </div>
+                <span class="material-icons-outlined flow-arrow">arrow_forward</span>
+                <div class="flow-node">
+                  <div class="flow-icon"><span class="material-icons-outlined">psychology</span></div>Gemini (Paso
+                  1)<br><span style="color:#737373; font-weight:normal;">Parseo a JSON estricto</span>
+                </div>
+                <span class="material-icons-outlined flow-arrow">arrow_forward</span>
+                <div class="flow-node">
+                  <div class="flow-icon"><span class="material-icons-outlined">data_object</span></div>JS
+                  Backend<br><span style="color:#737373; font-weight:normal;">Fuzzy Search & Sorting</span>
+                </div>
+                <span class="material-icons-outlined flow-arrow">arrow_forward</span>
+                <div class="flow-node">
+                  <div class="flow-icon"><span class="material-icons-outlined">draw</span></div>Gemini (Paso
+                  2)<br><span style="color:#737373; font-weight:normal;">Renderizado HTML/Insights</span>
+                </div>
+                <span class="material-icons-outlined flow-arrow">arrow_forward</span>
+                <div class="flow-node">
+                  <div class="flow-icon"><span class="material-icons-outlined">dashboard</span></div>UI /
+                  PDF<br><span style="color:#737373; font-weight:normal;">Visualización Final</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bento-card large">
+              <div class="bento-icon"><span class="material-icons-outlined">lightbulb</span></div>
+              <h3 class="bento-title">Q&A: Decisiones de Diseño Estratégico</h3>
+              <ul class="bento-list">
+                <li><strong>¿Por qué Google Apps Script y no Python/Streamlit?</strong><br>GAS permite construir un MVP serverless conectado directamente a la base de datos (Google Sheets) sin necesidad de configurar contenedores, bases de datos SQL o gestionar infraestructura de despliegue. Costo cero, iteración inmediata.
+                </li>
+                <li><strong>¿Cómo se maneja la latencia y los tokens?</strong><br>El bot NUNCA lee el Excel completo. Gemini solo recibe los nombres de las columnas para entender la intención. Apps Script extrae y ordena matemáticamente las filas relevantes y solo envía ese micro-contexto de vuelta a la IA.
+                </li>
+                <li><strong>¿Cumple los requerimientos del 30% (Anomalías)?</strong><br>Sí. La función
+                  <code>findAnomaliesInSheets</code> escanea semanalmente caídas superiores al 15% WoW de forma
+                  autónoma, inyectando las alertas críticas en el Dashboard y en los reportes conversacionales.</li>
+              </ul>
+            </div>
+
+            <div class="bento-card">
+              <div class="bento-icon"><span class="material-icons-outlined">check_circle</span></div>
+              <h3 class="bento-title">Valor Añadido</h3>
+              <p class="bento-text">La sección de arquitectura destaca la implementación enfocada en la
+                <strong>optimización de procesos y automatización</strong>.<br><br>Se incluyeron <i>Bonus points</i>:
+                Interfaz de vanguardia (Material Design + Rappi Branding), gráficas de ApexCharts, exportación
+                instantánea a PDF y un manejo de contexto en caché.</p>
+            </div>
+
+            <a href="https://github.com/Selenity-ID/Operations-Intelligence-Rappi" target="_blank"
+              style="display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: #ffffff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: 600; margin-top: 16px; transition: background-color 0.2s;"
+              onmouseover="this.style.backgroundColor='#000000'" onmouseout="this.style.backgroundColor='#24292e'">
+              <span class="material-icons-outlined" style="font-size: 20px;">code</span>
+              Ver repositorio en GitHub
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <footer class="rappi-footer">
+        © 2026 Rappi - Operations Intelligence System. Prueba Técnica implementada por Selene Jiménez.
+      </footer>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="infoModal">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeModal()">&times;</button>
+      <h2 class="modal-title"><span class="material-icons-outlined" style="color:var(--rappi-orange);">psychology</span>
+        Sobre Operations IA</h2>
+      <div class="modal-body">
+        <p>Este bot es un agente impulsado por Inteligencia Artificial diseñado para democratizar el acceso a la
+          información operativa.</p>
+        <p><strong>Casos de Uso Soportados:</strong></p>
+        <ul>
+          <li><strong>Consultas Directas:</strong> <em>"¿Cuáles son las 5 zonas con mayor % Lead Penetration?"</em></li>
+          <li><strong>Comparaciones:</strong> <em>"Compara el Perfect Order entre zonas Wealthy y Non Wealthy."</em>
+          </li>
+          <li><strong>Análisis Histórico:</strong>
+            <em>"¿Cómo evolucionó el Gross Profit en Chapinero las últimas 4 semanas?"</em></li>
+          <li><strong>Reportes Automáticos:</strong> <em>"Genera un reporte de anomalías."</em></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Lógica de Interfaz y Modal ---
+    const sidebar = document.getElementById('sidebar');
+    const modal = document.getElementById('infoModal');
+
+    function toggleSidebar() { sidebar.classList.toggle('open'); }
+    function openModal() { modal.classList.add('show'); }
+    function closeModal() { modal.classList.remove('show'); }
+    window.onclick = function(event) { if (event.target == modal) closeModal(); }
+
+    let dashboardLoaded = false;
+    function switchSection(sectionId, element) {
+      document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+      element.classList.add('active');
+      document.querySelectorAll('.section-container').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(sectionId + 'Section').classList.add('active');
+
+      if (window.innerWidth < 768) sidebar.classList.remove('open');
+      if (sectionId === 'dashboard' && !dashboardLoaded) loadDashboardData();
+    }
+
+    // --- Lógica de los Dropdowns Personalizados ---
+    function toggleDropdown(menuId, event) {
+      event.stopPropagation();
+      const menu = document.getElementById(menuId);
+      const isShowing = menu.classList.contains('show');
+      
+      // Cerrar todos los menus primero
+      document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+      
+      // Si no estaba abierto, abrirlo
+      if (!isShowing) menu.classList.add('show');
+    }
+
+    // Cerrar menús al hacer clic fuera
+    window.addEventListener('click', function() {
+      document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+    });
+
+    // Detener propagación al hacer clic dentro del menú para que no se cierre
+    document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+      dropdown.addEventListener('click', e => e.stopPropagation());
+    });
+
+    // --- Lógica del Dashboard ---
+    function loadDashboardData() {
+      // Capturar checkboxes seleccionados
+      const getChecked = (menuId) => Array.from(document.querySelectorAll(`#${menuId} input:checked`)).map(cb => cb.value);
+      
+      const filters = {
+        countries: getChecked('menuCountry'),
+        zoneTypes: getChecked('menuZoneType')
+      };
+
+      // Actualizar texto de los botones
+      const btnC = document.getElementById('textCountry');
+      const btnZ = document.getElementById('textZoneType');
+      btnC.innerHTML = filters.countries.length > 0 ? `🌍 Países (${filters.countries.length})` : '🌍 Países (Todos)';
+      btnZ.innerHTML = filters.zoneTypes.length > 0 ? `📍 Tipos de Zona (${filters.zoneTypes.length})` : '📍 Tipos de Zona (Todos)';
+
+      document.getElementById('kpi-orders').innerText = "...";
+      document.getElementById('kpi-profit').innerText = "...";
+
+      google.script.run.withSuccessHandler(renderDashboard).getDashboardData(filters);
+    }
+
+    function renderDashboard(responseStr) {
+      const res = JSON.parse(responseStr);
+      if(!res.success) return console.error(res.error);
+      dashboardLoaded = true;
+
+      // 1. Llenar Checkboxes Dinámicos (SOLO la primera vez)
+      const menuCountry = document.getElementById('menuCountry');
+      if (menuCountry.innerHTML.trim() === '') {
+        res.filtersData.countries.forEach(c => {
+          menuCountry.innerHTML += `
+            <label class="dropdown-item">
+              <input type="checkbox" value="${c}" onchange="loadDashboardData()"> ${c}
+            </label>`;
+        });
+      }
+
+      const menuZoneType = document.getElementById('menuZoneType');
+      if (menuZoneType.innerHTML.trim() === '') {
+        res.filtersData.zoneTypes.forEach(z => {
+          if(z) {
+            menuZoneType.innerHTML += `
+              <label class="dropdown-item">
+                <input type="checkbox" value="${z}" onchange="loadDashboardData()"> ${z}
+              </label>`;
+          }
+        });
+      }
+
+      // 2. Banner de Alertas Críticas
+      const alertBanner = document.getElementById('dashAlertBanner');
+      const alertText = document.getElementById('alertBannerText');
+      if(res.offenders.length > 0 && res.offenders[0].profit < 0) {
+        alertBanner.style.display = 'flex';
+        alertText.innerHTML = `<strong>Atención Operativa:</strong> Se detectaron ${res.offenders.length} zonas con rentabilidad crítica (Gross Profit UE negativo). Prioridad de revisión en ${res.offenders[0].ciudad}.`;
+      } else {
+        alertBanner.style.display = 'none';
+      }
+
+      // 3. Tarjetas KPI
+      document.getElementById('kpi-orders').innerText = res.kpis.totalOrders.toLocaleString('es-ES');
+      document.getElementById('kpi-profit').innerText = "$" + res.kpis.avgProfit;
+      const wowEl = document.getElementById('kpi-wow');
+      if(res.kpis.wowGrowth >= 0) {
+        wowEl.innerHTML = `▲ ${res.kpis.wowGrowth}% WoW`; wowEl.className = "kpi-trend trend-up";
+      } else {
+        wowEl.innerHTML = `▼ ${Math.abs(res.kpis.wowGrowth).toFixed(2)}% WoW`; wowEl.className = "kpi-trend trend-down";
+      }
+
+      // 4. Tabla Offenders (Peores 5)
+      const tbody = document.getElementById('offenders-body');
+      tbody.innerHTML = '';
+      res.offenders.forEach(off => {
+        tbody.innerHTML += `<tr><td>${off.ciudad}</td><td>${off.zona}</td><td><span class="badge-negative">$${off.profit.toFixed(2)}</span></td></tr>`;
+      });
+
+      // 5. Gráfico ApexCharts (Evolución)
+      if (window.mainEvolutionChartInstance) window.mainEvolutionChartInstance.destroy();
+      
+      const options = {
+        series: [{ name: 'Total Órdenes', data: res.trends.orders }],
+        chart: { height: 320, type: 'area', fontFamily: 'Inter, sans-serif', toolbar: { show: false } },
+        colors: ['#FF441F'],
+        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },
+        dataLabels: { enabled: false }, stroke: { curve: 'smooth', width: 3 },
+        xaxis: { categories: ['L8W', 'L7W', 'L6W', 'L5W', 'L4W', 'L3W', 'L2W', 'L1W', 'L0W'], axisBorder: { show: false }, axisTicks: { show: false } },
+        yaxis: { labels: { formatter: (value) => { return (value / 1000).toFixed(0) + "k" } } },
+        grid: { borderColor: '#F0F0F0', strokeDashArray: 4 }
+      };
+      
+      window.mainEvolutionChartInstance = new ApexCharts(document.querySelector("#mainEvolutionChart"), options);
+      window.mainEvolutionChartInstance.render();
+
+      // 6. Llenar Tabla Detallada (Data Grid)
+      const detailBody = document.getElementById('detailed-table-body');
+      detailBody.innerHTML = '';
+      
+      if (res.detailedData.length === 0) {
+        detailBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay datos para estos filtros</td></tr>';
+      } else {
+        res.detailedData.forEach(row => {
+          // Asignar clase visual dependiendo de si ganan o pierden dinero
+          const badgeClass = row.profit >= 0 ? 'badge-positive' : 'badge-negative';
+          
+          detailBody.innerHTML += `
+            <tr>
+              <td>${row.pais}</td>
+              <td>${row.ciudad}</td>
+              <td>${row.zona}</td>
+              <td>${row.tipo}</td>
+              <td><span class="${badgeClass}">$${row.profit.toFixed(2)}</span></td>
+            </tr>`;
+        });
+      }
+    }
+
+    // --- Lógica del Chat ---
+    const chatHistory = document.getElementById('chatHistory');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const typingIndicator = document.getElementById('typingIndicator');
+
+    function handleKeyPress(event) { if (event.key === 'Enter') sendMessage(); }
+
+    // --- Lógica del Chat y Barra de Progreso ---
+    let chatProgressInterval;
+
+    // --- Lógica del Chat y Animación de Carga IA ---
+    let chatLoadingInterval;
+    // Array de iconos que el bot irá alternando mientras piensa
+    const loadingIcons = ['memory', 'manage_search', 'analytics', 'query_stats', 'lightbulb'];
+    let iconIndex = 0;
+
+    function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      appendMessage(text, 'user');
+      userInput.value = '';
+      
+      // Bloquear UI y mostrar el indicador
+      sendBtn.disabled = true; userInput.disabled = true; 
+      
+      const tIndicator = document.getElementById('typingIndicator');
+      const lIcon = document.getElementById('loadingIcon');
+      tIndicator.style.display = 'flex';
+      scrollToBottom();
+
+      // Iniciar el ciclo de "Morphing" de iconos
+      chatLoadingInterval = setInterval(() => {
+        iconIndex = (iconIndex + 1) % loadingIcons.length;
+        lIcon.innerText = loadingIcons[iconIndex];
+      }, 500); // Cambia el icono cada medio segundo
+
+      google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).handleUserInput(text);
+    }
+
+    function onSuccess(response) {
+      clearInterval(chatLoadingInterval);
+      document.getElementById('typingIndicator').style.display = 'none';
+      sendBtn.disabled = false; userInput.disabled = false; userInput.focus();
+      
+      if (response.success) { appendMessage(formatMarkdownBasico(response.message), 'bot'); } 
+      else { appendMessage("Error: " + response.message, 'bot'); }
+    }
+
+    function onError(error) {
+      clearInterval(chatLoadingInterval);
+      document.getElementById('typingIndicator').style.display = 'none';
+      sendBtn.disabled = false; userInput.disabled = false;
+      appendMessage("Error de conexión. Intenta de nuevo.", 'bot');
+    }
+
+    function appendMessage(text, sender) {
+      const bubble = document.createElement('div');
+      bubble.className = 'rappi-bubble rappi-bubble-' + sender;
+      bubble.innerHTML = text; 
+      chatHistory.appendChild(bubble);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() { chatHistory.scrollTop = chatHistory.scrollHeight; }
+
+    function formatMarkdownBasico(text) {
+      if (text.includes('rappi-report-card')) return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    }
+
+    function descargarPDF(btnElement) {
+      const element = btnElement.closest('.rappi-report-card');
+      btnElement.style.display = 'none'; 
+      const opt = { margin: 10, filename: 'Reporte_Operacional_Rappi.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      html2pdf().set(opt).from(element).save().then(() => { btnElement.style.display = 'inline-flex'; });
+    }
+  </script>
+</body>
+
+</html>

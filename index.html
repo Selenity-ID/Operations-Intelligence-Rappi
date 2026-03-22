@@ -1130,42 +1130,46 @@
           </div>
 
           <div class="dash-kpi-grid">
+            
             <div class="kpi-card">
-              <div class="kpi-title"><span class="material-icons-outlined">shopping_bag</span> Órdenes Totales <div
-                  class="info-tooltip">
+              <div class="kpi-title"><span class="material-icons-outlined">shopping_bag</span> Órdenes Totales 
+                <div class="info-tooltip">
                   <span class="material-icons-outlined">info</span><span class="tooltip-text">Volumen total de pedidos entregados en la semana actual (L0W).</span>
                 </div>
               </div>
               <p class="kpi-value" id="kpi-orders">Cargando...</p>
               <div class="kpi-trend" id="kpi-wow">--</div>
             </div>
-            <div class="kpi-card">
-              <div class="kpi-title"><span class="material-icons-outlined">attach_money</span> Gross Profit UE <div
-                  class="info-tooltip">
+
+            <div class="kpi-card" style="border-left-color: #2962FF;">
+              <div class="kpi-title"><span class="material-icons-outlined">attach_money</span> Gross Profit UE 
+                <div class="info-tooltip">
                   <span class="material-icons-outlined">info</span><span class="tooltip-text">Utilidad bruta promedio por orden (Unit Economics).</span>
                 </div>
-              </div>
-              <p class="kpi-value" id="kpi-profit">Cargando...</p>
-              <div class="kpi-trend trend-up">Rentabilidad global positiva</div>
+              </div> <p class="kpi-value" id="kpi-profit">Cargando...</p>
+              <div class="kpi-trend" id="kpi-profit-status">--</div>
             </div>
+
             <div class="kpi-card" style="border-left-color: #00C853;">
-              <div class="kpi-title"><span class="material-icons-outlined">storefront</span> Retail CVR <div
-                  class="info-tooltip">
+              <div class="kpi-title"><span class="material-icons-outlined">storefront</span> Retail CVR 
+                <div class="info-tooltip">
                   <span class="material-icons-outlined">info</span><span class="tooltip-text">Tasa de conversión de búsqueda a sesión en tiendas Retail.</span>
                 </div>
               </div>
-              <p class="kpi-value">0.78%</p>
-              <div class="kpi-trend trend-up">▲ 0.05% vs L1W</div>
+              <p class="kpi-value" id="kpi-cvr">...</p>
+              <div class="kpi-trend" id="kpi-cvr-wow">--</div>
             </div>
+
             <div class="kpi-card" style="border-left-color: #7B1FA2;">
-              <div class="kpi-title"><span class="material-icons-outlined">stars</span> Breakeven PRO <div
-                  class="info-tooltip">
+              <div class="kpi-title"><span class="material-icons-outlined">stars</span> Breakeven PRO 
+                <div class="info-tooltip">
                   <span class="material-icons-outlined">info</span><span class="tooltip-text">Porcentaje de usuarios suscritos que recuperan su membresía.</span>
                 </div>
               </div>
-              <p class="kpi-value">42.5%</p>
-              <div class="kpi-trend trend-up">▲ 1.2% de retención</div>
+              <p class="kpi-value" id="kpi-be">...</p>
+              <div class="kpi-trend" id="kpi-be-wow">--</div>
             </div>
+
           </div>
 
           <div class="dash-charts-grid">
@@ -1230,7 +1234,8 @@
         <div class="pitch-content">
           <div class="pitch-header">
             <h2>Resolución del Caso Técnico</h2>
-            <p>Democratización de datos operacionales mediante Inteligencia Artificial y automatización de procesos.</p>
+            <p>Democratización de datos operacionales mediante Inteligencia Artificial y automatización a nivel Data
+              Warehouse.</p>
           </div>
 
           <div class="bento-grid">
@@ -1247,16 +1252,17 @@
             <div class="bento-card">
               <div class="bento-icon"><span class="material-icons-outlined">layers</span></div>
               <h3 class="bento-title">Tech Stack Elegido</h3>
-              <p class="bento-text">Arquitectura 100% Serverless enfocada en despliegue ágil y escalabilidad.</p>
+              <p class="bento-text">Arquitectura híbrida 100% Serverless enfocada en escalabilidad masiva (Big Data).
+              </p>
               <div class="tech-stack">
-                <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">javascript</span>
-                JS (V8 Engine)</span>
+                <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">storage</span>
+                Google BigQuery</span>
                 <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">api</span> Gemini
                 2.5 Flash</span>
+                <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">javascript</span>
+                GAS (V8 Engine)</span>
                 <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">bar_chart</span>
                 ApexCharts</span>
-                <span class="tech-badge"><span class="material-icons-outlined" style="font-size:14px">cloud</span>
-                Google Apps Script</span>
               </div>
             </div>
 
@@ -1264,9 +1270,10 @@
               <div class="bento-icon"><span class="material-icons-outlined">account_tree</span></div>
               <h3 class="bento-title">Arquitectura de Procesamiento (El "Orquestador IA")</h3>
               <p class="bento-text">Para evitar los límites de tokens y las alucinaciones comunes al pasar grandes bases
-                de datos a un LLM, se implementó un pipeline de dos fases. El motor de JavaScript nativo se encarga de
-                la matemática pesada (ordenamiento y cálculos de >12,000 registros), mientras que la IA se enfoca
-                estrictamente en el enrutamiento semántico y la generación de reportes HTML.</p>
+                de datos a un LLM, se implementó un pipeline desacoplado. <strong>Google BigQuery</strong> se encarga de
+                la ejecución matemática pesada (capaz de procesar millones de registros en milisegundos), mientras que
+                la IA se enfoca
+                estrictamente en el enrutamiento semántico y la generación de reportes ejecutivos HTML.</p>
 
               <div class="flow-diagram">
                 <div class="flow-node">
@@ -1280,13 +1287,13 @@
                 </div>
                 <span class="material-icons-outlined flow-arrow">arrow_forward</span>
                 <div class="flow-node">
-                  <div class="flow-icon"><span class="material-icons-outlined">data_object</span></div>JS
-                  Backend<br><span style="color:#737373; font-weight:normal;">Fuzzy Search & Sorting</span>
+                  <div class="flow-icon"><span class="material-icons-outlined">storage</span></div>BigQuery
+                  (SQL)<br><span style="color:#737373; font-weight:normal;">Motor de Base de Datos</span>
                 </div>
                 <span class="material-icons-outlined flow-arrow">arrow_forward</span>
                 <div class="flow-node">
                   <div class="flow-icon"><span class="material-icons-outlined">draw</span></div>Gemini (Paso
-                  2)<br><span style="color:#737373; font-weight:normal;">Renderizado HTML/Insights</span>
+                  2)<br><span style="color:#737373; font-weight:normal;">Renderizado Insights</span>
                 </div>
                 <span class="material-icons-outlined flow-arrow">arrow_forward</span>
                 <div class="flow-node">
@@ -1300,23 +1307,25 @@
               <div class="bento-icon"><span class="material-icons-outlined">lightbulb</span></div>
               <h3 class="bento-title">Q&A: Decisiones de Diseño Estratégico</h3>
               <ul class="bento-list">
-                <li><strong>¿Por qué Google Apps Script y no Python/Streamlit?</strong><br>GAS permite construir un MVP serverless conectado directamente a la base de datos (Google Sheets) sin necesidad de configurar contenedores, bases de datos SQL o gestionar infraestructura de despliegue. Costo cero, iteración inmediata.
+                <li><strong>¿Por qué BigQuery en lugar de procesar los datos en memoria (Sheets)?</strong><br>Pensando en el entorno Enterprise de Rappi. Las bases de datos operacionales manejan millones de filas diarias. Al usar BigQuery como Data Warehouse central, garantizamos que el sistema escale sub-segundo desde 12 mil registros hasta 100 millones, eliminando cuellos de botella de memoria.
                 </li>
-                <li><strong>¿Cómo se maneja la latencia y los tokens?</strong><br>El bot NUNCA lee el Excel completo. Gemini solo recibe los nombres de las columnas para entender la intención. Apps Script extrae y ordena matemáticamente las filas relevantes y solo envía ese micro-contexto de vuelta a la IA.
+                <li><strong>¿Cómo se maneja la latencia y los tokens?</strong><br>El bot NUNCA lee la base de datos completa. Gemini traduce la intención a filtros, Apps Script compone la consulta SQL, y BigQuery ejecuta la matemática (Filtros + Order By). Solo el micro-contexto resultante (ej. el Top 5 exacto) se envía a la IA.
                 </li>
                 <li><strong>¿Cumple los requerimientos del 30% (Anomalías)?</strong><br>Sí. La función
-                  <code>findAnomaliesInSheets</code> escanea semanalmente caídas superiores al 15% WoW de forma
-                  autónoma, inyectando las alertas críticas en el Dashboard y en los reportes conversacionales.</li>
+                  <code>findAnomaliesInBigQuery</code> escanea mediante SQL las caídas de rentabilidad superiores al 15%
+                  WoW de forma
+                  autónoma, inyectando alertas críticas en el Dashboard y en los reportes conversacionales.
+                </li>
               </ul>
             </div>
 
             <div class="bento-card">
               <div class="bento-icon"><span class="material-icons-outlined">check_circle</span></div>
               <h3 class="bento-title">Valor Añadido</h3>
-              <p class="bento-text">La sección de arquitectura destaca la implementación enfocada en la
-                <strong>optimización de procesos y automatización</strong>.<br><br>Se incluyeron <i>Bonus points</i>:
-                Interfaz de vanguardia (Material Design + Rappi Branding), gráficas de ApexCharts, exportación
-                instantánea a PDF y un manejo de contexto en caché.</p>
+              <p class="bento-text">La arquitectura destaca la implementación enfocada en
+                <strong>Data Quality y escalabilidad Cloud</strong>.<br><br>Se incluyeron <i>Bonus points</i>:
+                Despliegue directo en GCP (BigQuery), interfaz Material Design, gráficas dinámicas de ApexCharts, parseo
+                regional robusto y exportación instantánea a PDF.</p>
             </div>
 
             <a href="https://github.com/Selenity-ID/Operations-Intelligence-Rappi" target="_blank"
@@ -1331,9 +1340,10 @@
 
       <footer class="rappi-footer">
         © 2026 Rappi - Operations Intelligence System. Prueba Técnica implementada por Selene Jiménez.
-        <a href="https://github.com/Selenity-ID/Operations-Intelligence-Rappi" target="_blank" style="color: var(--rappi-orange); text-decoration: none; font-weight: 600;">
-    Ver en GitHub
-  </a>
+        <a href="https://github.com/Selenity-ID/Operations-Intelligence-Rappi" target="_blank"
+          style="color: var(--rappi-orange); text-decoration: none; font-weight: 600;">
+          Ver en GitHub
+        </a>
       </footer>
     </main>
   </div>
@@ -1352,7 +1362,8 @@
           <li><strong>Comparaciones:</strong> <em>"Compara el Perfect Order entre zonas Wealthy y Non Wealthy."</em>
           </li>
           <li><strong>Análisis Histórico:</strong>
-            <em>"¿Cómo evolucionó el Gross Profit en Chapinero las últimas 4 semanas?"</em></li>
+            <em>"¿Cómo evolucionó el Gross Profit en Chapinero las últimas 4 semanas?"</em>
+          </li>
           <li><strong>Reportes Automáticos:</strong> <em>"Genera un reporte de anomalías."</em></li>
         </ul>
       </div>
@@ -1430,26 +1441,22 @@
       if(!res.success) return console.error(res.error);
       dashboardLoaded = true;
 
+      // --- FORMATEADOR DE NÚMEROS MÁGICO ---
+      const numFmt = new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 });
+      const moneyFmt = new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 2 });
+
       // 1. Llenar Checkboxes Dinámicos (SOLO la primera vez)
       const menuCountry = document.getElementById('menuCountry');
       if (menuCountry.innerHTML.trim() === '') {
         res.filtersData.countries.forEach(c => {
-          menuCountry.innerHTML += `
-            <label class="dropdown-item">
-              <input type="checkbox" value="${c}" onchange="loadDashboardData()"> ${c}
-            </label>`;
+          menuCountry.innerHTML += `<label class="dropdown-item"><input type="checkbox" value="${c}" onchange="loadDashboardData()"> ${c}</label>`;
         });
       }
 
       const menuZoneType = document.getElementById('menuZoneType');
       if (menuZoneType.innerHTML.trim() === '') {
         res.filtersData.zoneTypes.forEach(z => {
-          if(z) {
-            menuZoneType.innerHTML += `
-              <label class="dropdown-item">
-                <input type="checkbox" value="${z}" onchange="loadDashboardData()"> ${z}
-              </label>`;
-          }
+          if(z) menuZoneType.innerHTML += `<label class="dropdown-item"><input type="checkbox" value="${z}" onchange="loadDashboardData()"> ${z}</label>`;
         });
       }
 
@@ -1458,31 +1465,60 @@
       const alertText = document.getElementById('alertBannerText');
       if(res.offenders.length > 0 && res.offenders[0].profit < 0) {
         alertBanner.style.display = 'flex';
-        alertText.innerHTML = `<strong>Atención Operativa:</strong> Se detectaron ${res.offenders.length} zonas con rentabilidad crítica (Gross Profit UE negativo). Prioridad de revisión en ${res.offenders[0].ciudad}.`;
+        alertText.innerHTML = `<strong>Atención Operativa:</strong> Se detectaron ${res.offenders.length} zonas con rentabilidad crítica. Prioridad de revisión en ${res.offenders[0].ciudad}.`;
       } else {
         alertBanner.style.display = 'none';
       }
 
-      // 3. Tarjetas KPI
-      document.getElementById('kpi-orders').innerText = res.kpis.totalOrders.toLocaleString('es-ES');
-      document.getElementById('kpi-profit').innerText = "$" + res.kpis.avgProfit;
+      // 3. Tarjetas KPI Dinámicas y Formateadas
+      document.getElementById('kpi-orders').innerText = numFmt.format(res.kpis.totalOrders);
+      document.getElementById('kpi-profit').innerText = "$" + moneyFmt.format(res.kpis.avgProfit);
+      
       const wowEl = document.getElementById('kpi-wow');
       if(res.kpis.wowGrowth >= 0) {
-        wowEl.innerHTML = `▲ ${res.kpis.wowGrowth}% WoW`; wowEl.className = "kpi-trend trend-up";
+        wowEl.innerHTML = `▲ ${res.kpis.wowGrowth.toFixed(2)}% WoW`; wowEl.className = "kpi-trend trend-up";
       } else {
         wowEl.innerHTML = `▼ ${Math.abs(res.kpis.wowGrowth).toFixed(2)}% WoW`; wowEl.className = "kpi-trend trend-down";
+      }
+
+      // --- NUEVO: Lógica visual para la tarjeta de Rentabilidad ---
+      const profitStatusEl = document.getElementById('kpi-profit-status');
+      if(res.kpis.avgProfit >= 0) {
+        profitStatusEl.innerHTML = `▲ Rentabilidad global positiva`; 
+        profitStatusEl.className = "kpi-trend trend-up";
+      } else {
+        profitStatusEl.innerHTML = `▼ Rentabilidad en pérdida`; 
+        profitStatusEl.className = "kpi-trend trend-down";
+      }
+
+      // Tarjeta CVR
+      document.getElementById('kpi-cvr').innerText = res.kpis.cvr.toFixed(2) + '%';
+      const cvrWowEl = document.getElementById('kpi-cvr-wow');
+      if(res.kpis.cvrWow >= 0) {
+        cvrWowEl.innerHTML = `▲ ${res.kpis.cvrWow.toFixed(2)}% vs L1W`; cvrWowEl.className = "kpi-trend trend-up";
+      } else {
+        cvrWowEl.innerHTML = `▼ ${Math.abs(res.kpis.cvrWow).toFixed(2)}% vs L1W`; cvrWowEl.className = "kpi-trend trend-down";
+      }
+
+      // Tarjeta Breakeven
+      document.getElementById('kpi-be').innerText = res.kpis.breakeven.toFixed(2) + '%';
+      const beWowEl = document.getElementById('kpi-be-wow');
+      if(res.kpis.breakevenWow >= 0) {
+        beWowEl.innerHTML = `▲ ${res.kpis.breakevenWow.toFixed(2)}% retención`; beWowEl.className = "kpi-trend trend-up";
+      } else {
+        beWowEl.innerHTML = `▼ ${Math.abs(res.kpis.breakevenWow).toFixed(2)}% retención`; beWowEl.className = "kpi-trend trend-down";
       }
 
       // 4. Tabla Offenders (Peores 5)
       const tbody = document.getElementById('offenders-body');
       tbody.innerHTML = '';
       res.offenders.forEach(off => {
-        tbody.innerHTML += `<tr><td>${off.ciudad}</td><td>${off.zona}</td><td><span class="badge-negative">$${off.profit.toFixed(2)}</span></td></tr>`;
+        let displayProfit = off.profit < 0 ? "-$" + moneyFmt.format(Math.abs(off.profit)) : "$" + moneyFmt.format(off.profit);
+        tbody.innerHTML += `<tr><td>${off.ciudad}</td><td>${off.zona}</td><td><span class="badge-negative">${displayProfit}</span></td></tr>`;
       });
 
-      // 5. Gráfico ApexCharts (Evolución)
+      // 5. Gráfico ApexCharts
       if (window.mainEvolutionChartInstance) window.mainEvolutionChartInstance.destroy();
-      
       const options = {
         series: [{ name: 'Total Órdenes', data: res.trends.orders }],
         chart: { height: 320, type: 'area', fontFamily: 'Inter, sans-serif', toolbar: { show: false } },
@@ -1490,31 +1526,28 @@
         fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },
         dataLabels: { enabled: false }, stroke: { curve: 'smooth', width: 3 },
         xaxis: { categories: ['L8W', 'L7W', 'L6W', 'L5W', 'L4W', 'L3W', 'L2W', 'L1W', 'L0W'], axisBorder: { show: false }, axisTicks: { show: false } },
-        yaxis: { labels: { formatter: (value) => { return (value / 1000).toFixed(0) + "k" } } },
+        yaxis: { labels: { formatter: (value) => { return numFmt.format(value) } } },
         grid: { borderColor: '#F0F0F0', strokeDashArray: 4 }
       };
-      
       window.mainEvolutionChartInstance = new ApexCharts(document.querySelector("#mainEvolutionChart"), options);
       window.mainEvolutionChartInstance.render();
 
       // 6. Llenar Tabla Detallada (Data Grid)
       const detailBody = document.getElementById('detailed-table-body');
       detailBody.innerHTML = '';
-      
       if (res.detailedData.length === 0) {
         detailBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay datos para estos filtros</td></tr>';
       } else {
         res.detailedData.forEach(row => {
-          // Asignar clase visual dependiendo de si ganan o pierden dinero
           const badgeClass = row.profit >= 0 ? 'badge-positive' : 'badge-negative';
-          
+          let displayProfit = row.profit < 0 ? "-$" + moneyFmt.format(Math.abs(row.profit)) : "$" + moneyFmt.format(row.profit);
           detailBody.innerHTML += `
             <tr>
               <td>${row.pais}</td>
               <td>${row.ciudad}</td>
               <td>${row.zona}</td>
               <td>${row.tipo}</td>
-              <td><span class="${badgeClass}">$${row.profit.toFixed(2)}</span></td>
+              <td><span class="${badgeClass}">${displayProfit}</span></td>
             </tr>`;
         });
       }

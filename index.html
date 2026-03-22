@@ -1040,6 +1040,17 @@
       font-weight: 700;
       font-size: 12px;
     }
+    .chat-timestamp {
+      font-size: 11px;
+      color: #9aa0a6;
+      margin-top: 4px;
+      text-align: right;
+      display: block;
+    }
+    /* Si el mensaje es del usuario, la hora puede ser un poco más clara para contrastar con el fondo oscuro */
+    .user-message .chat-timestamp {
+      color: #e8eaed; 
+    }
   </style>
 </head>
 
@@ -1075,16 +1086,18 @@
       <section id="chatSection" class="section-container active">
         <div class="rappi-card">
           <div class="chat-header-bar">
-            <h3><span class="material-icons-outlined" style="color:var(--rappi-orange)">smart_toy</span> Asistente
-              Analítico IA</h3>
-            <button class="icon-btn-help" onclick="openModal()" title="¿Cómo usar este bot?"><span class="material-icons-outlined">help</span></button>
-          </div>
-          <div class="rappi-chat-history" id="chatHistory">
-            <div class="rappi-bubble rappi-bubble-bot">
-              Hola. Soy tu Asistente de Operaciones impulsado por IA. ¿Qué métricas, zonas o tendencias quieres analizar
-              hoy?
+            <h3><span class="material-icons-outlined" style="color:var(--rappi-orange)">smart_toy</span> Analista de Operaciones Inteligente</h3>
+            <div style="display: flex; gap: 12px;">
+              <button class="icon-btn-help" onclick="clearChatHistory()" title="Borrar Historial">
+                <span class="material-icons-outlined">delete_sweep</span>
+              </button>
+              <button class="icon-btn-help" onclick="openModal()" title="¿Cómo usar este bot?">
+                <span class="material-icons-outlined">help</span>
+              </button>
             </div>
           </div>
+          <div class="rappi-chat-history" id="chatHistory">
+            </div>
           <div class="typing-indicator" id="typingIndicator">
             <span class="material-icons-outlined morph-icon" id="loadingIcon">memory</span>
             <span id="loadingText">Procesando reglas de negocio...</span>
@@ -1195,7 +1208,7 @@
                 </thead>
                 <tbody id="offenders-body">
                   <tr>
-                    <td colspan="3" style="text-align:center;">Cargando anomalías...</td>
+                    <td colspan="3" style="text-align:center;">Cargando...</td>
                   </tr>
                 </tbody>
               </table>
@@ -1370,6 +1383,27 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <button class="close-modal" onclick="closeDeleteModal()">&times;</button>
+      
+      <div class="bento-icon" style="margin: 0 auto 16px; background: rgba(244, 67, 54, 0.1); color: #F44336; width: 64px; height: 64px; border-radius: 50%;">
+        <span class="material-icons-outlined" style="font-size: 32px;">delete_forever</span>
+      </div>
+      
+      <h2 class="modal-title" style="justify-content: center; border-bottom: none; padding-bottom: 0; margin-bottom: 8px;">Borrar Historial</h2>
+      
+      <div class="modal-body" style="margin-bottom: 24px;">
+        <p>¿Estás seguro de que deseas borrar todo el historial de análisis? Esta acción no se puede deshacer.</p>
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="rappi-button-primary" style="background-color: #F5F5F7; color: var(--rappi-text-primary);" onclick="closeDeleteModal()">Cancelar</button>
+        <button class="rappi-button-primary" style="background-color: #F44336;" onclick="executeClearHistory()">Sí, borrar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // --- Lógica de Interfaz y Modal ---
     const sidebar = document.getElementById('sidebar');
@@ -1378,7 +1412,15 @@
     function toggleSidebar() { sidebar.classList.toggle('open'); }
     function openModal() { modal.classList.add('show'); }
     function closeModal() { modal.classList.remove('show'); }
-    window.onclick = function(event) { if (event.target == modal) closeModal(); }
+
+    const deleteModal = document.getElementById('deleteModal');
+    
+    function closeDeleteModal() { deleteModal.classList.remove('show'); }
+    
+    window.onclick = function(event) { 
+      if (event.target == modal) closeModal(); 
+      if (event.target == deleteModal) closeDeleteModal();
+    }
 
     let dashboardLoaded = false;
     function switchSection(sectionId, element) {
@@ -1397,26 +1439,20 @@
       const menu = document.getElementById(menuId);
       const isShowing = menu.classList.contains('show');
       
-      // Cerrar todos los menus primero
       document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
-      
-      // Si no estaba abierto, abrirlo
       if (!isShowing) menu.classList.add('show');
     }
 
-    // Cerrar menús al hacer clic fuera
     window.addEventListener('click', function() {
       document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
     });
 
-    // Detener propagación al hacer clic dentro del menú para que no se cierre
     document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
       dropdown.addEventListener('click', e => e.stopPropagation());
     });
 
     // --- Lógica del Dashboard ---
     function loadDashboardData() {
-      // Capturar checkboxes seleccionados
       const getChecked = (menuId) => Array.from(document.querySelectorAll(`#${menuId} input:checked`)).map(cb => cb.value);
       
       const filters = {
@@ -1424,7 +1460,6 @@
         zoneTypes: getChecked('menuZoneType')
       };
 
-      // Actualizar texto de los botones
       const btnC = document.getElementById('textCountry');
       const btnZ = document.getElementById('textZoneType');
       btnC.innerHTML = filters.countries.length > 0 ? `🌍 Países (${filters.countries.length})` : '🌍 Países (Todos)';
@@ -1441,11 +1476,9 @@
       if(!res.success) return console.error(res.error);
       dashboardLoaded = true;
 
-      // --- FORMATEADOR DE NÚMEROS MÁGICO ---
       const numFmt = new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 });
       const moneyFmt = new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 2 });
 
-      // 1. Llenar Checkboxes Dinámicos (SOLO la primera vez)
       const menuCountry = document.getElementById('menuCountry');
       if (menuCountry.innerHTML.trim() === '') {
         res.filtersData.countries.forEach(c => {
@@ -1460,7 +1493,6 @@
         });
       }
 
-      // 2. Banner de Alertas Críticas
       const alertBanner = document.getElementById('dashAlertBanner');
       const alertText = document.getElementById('alertBannerText');
       if(res.offenders.length > 0 && res.offenders[0].profit < 0) {
@@ -1470,7 +1502,6 @@
         alertBanner.style.display = 'none';
       }
 
-      // 3. Tarjetas KPI Dinámicas y Formateadas
       document.getElementById('kpi-orders').innerText = numFmt.format(res.kpis.totalOrders);
       document.getElementById('kpi-profit').innerText = "$" + moneyFmt.format(res.kpis.avgProfit);
       
@@ -1481,7 +1512,6 @@
         wowEl.innerHTML = `▼ ${Math.abs(res.kpis.wowGrowth).toFixed(2)}% WoW`; wowEl.className = "kpi-trend trend-down";
       }
 
-      // --- NUEVO: Lógica visual para la tarjeta de Rentabilidad ---
       const profitStatusEl = document.getElementById('kpi-profit-status');
       if(res.kpis.avgProfit >= 0) {
         profitStatusEl.innerHTML = `▲ Rentabilidad global positiva`; 
@@ -1491,7 +1521,6 @@
         profitStatusEl.className = "kpi-trend trend-down";
       }
 
-      // Tarjeta CVR
       document.getElementById('kpi-cvr').innerText = res.kpis.cvr.toFixed(2) + '%';
       const cvrWowEl = document.getElementById('kpi-cvr-wow');
       if(res.kpis.cvrWow >= 0) {
@@ -1500,7 +1529,6 @@
         cvrWowEl.innerHTML = `▼ ${Math.abs(res.kpis.cvrWow).toFixed(2)}% vs L1W`; cvrWowEl.className = "kpi-trend trend-down";
       }
 
-      // Tarjeta Breakeven
       document.getElementById('kpi-be').innerText = res.kpis.breakeven.toFixed(2) + '%';
       const beWowEl = document.getElementById('kpi-be-wow');
       if(res.kpis.breakevenWow >= 0) {
@@ -1509,7 +1537,6 @@
         beWowEl.innerHTML = `▼ ${Math.abs(res.kpis.breakevenWow).toFixed(2)}% retención`; beWowEl.className = "kpi-trend trend-down";
       }
 
-      // 4. Tabla Offenders (Peores 5)
       const tbody = document.getElementById('offenders-body');
       tbody.innerHTML = '';
       res.offenders.forEach(off => {
@@ -1517,7 +1544,6 @@
         tbody.innerHTML += `<tr><td>${off.ciudad}</td><td>${off.zona}</td><td><span class="badge-negative">${displayProfit}</span></td></tr>`;
       });
 
-      // 5. Gráfico ApexCharts
       if (window.mainEvolutionChartInstance) window.mainEvolutionChartInstance.destroy();
       const options = {
         series: [{ name: 'Total Órdenes', data: res.trends.orders }],
@@ -1532,7 +1558,6 @@
       window.mainEvolutionChartInstance = new ApexCharts(document.querySelector("#mainEvolutionChart"), options);
       window.mainEvolutionChartInstance.render();
 
-      // 6. Llenar Tabla Detallada (Data Grid)
       const detailBody = document.getElementById('detailed-table-body');
       detailBody.innerHTML = '';
       if (res.detailedData.length === 0) {
@@ -1559,24 +1584,50 @@
     const sendBtn = document.getElementById('sendBtn');
     const typingIndicator = document.getElementById('typingIndicator');
 
+    // --- Función de Saludos Dinámicos ---
+    function getDailyGreeting() {
+      const saludos = [
+        "¡Feliz Domingo! 🛋️ Los servidores están relajados, pero si hay una urgencia operativa, aquí estoy. ¿Qué miramos?",
+        "¡Buen Lunes! ☕ Espero que tu café (o mate 🧉) esté más fuerte que nuestras queries hoy. ¿Por dónde empezamos?",
+        "¡Buen Martes! 🚀 Ya sobrevivimos al lunes, eso es ganancia pura. ¿Qué métricas o tendencias analizamos en esta sesión?",
+        "¡Mitad de semana! 🐪 Los KPIs no descansan y nosotros tampoco. ¿Qué insight crítico buscamos hoy?",
+        "¡Juernes! 🎉 Ya casi olemos el fin de semana, pero primero, asegurémonos de que el Profit esté en verde. ¿En qué nos enfocamos?",
+        "¡Por fin Viernes! 🍻 Prometo que este análisis será rápido y preciso para que puedas cerrar la semana con broche de oro. ¿Qué revisamos?",
+        "¡Buen Sábado! 🕶️ Si estás analizando métricas hoy, definitivamente mereces un ascenso. ¿Qué anomalía buscamos?"
+      ];
+      const diaSemana = new Date().getDay(); // 0 es Domingo, 1 es Lunes, etc.
+      return saludos[diaSemana];
+    }
+
+    // Cargar historial al iniciar la aplicación
+    window.onload = function() {
+      const history = JSON.parse(localStorage.getItem('rappi_chat_history') || '[]');
+      
+      if (history.length > 0) {
+        history.forEach(msg => {
+          addMessage(msg.sender, msg.text, false, msg.time);
+        });
+      } else {
+        // AQUÍ inyectamos el saludo dinámico
+        const saludoInicial = getDailyGreeting();
+        addMessage('bot', saludoInicial, true);
+      }
+    };
+
     function handleKeyPress(event) { if (event.key === 'Enter') sendMessage(); }
 
-    // --- Lógica del Chat y Barra de Progreso ---
-    let chatProgressInterval;
-
-    // --- Lógica del Chat y Animación de Carga IA ---
     let chatLoadingInterval;
-    // Array de iconos que el bot irá alternando mientras piensa
     const loadingIcons = ['memory', 'manage_search', 'analytics', 'query_stats', 'lightbulb'];
     let iconIndex = 0;
 
     function sendMessage() {
       const text = userInput.value.trim();
       if (!text) return;
-      appendMessage(text, 'user');
+      
+      // Mostrar el mensaje del usuario en la pantalla usando la nueva función
+      addMessage('user', text);
       userInput.value = '';
       
-      // Bloquear UI y mostrar el indicador
       sendBtn.disabled = true; userInput.disabled = true; 
       
       const tIndicator = document.getElementById('typingIndicator');
@@ -1584,11 +1635,10 @@
       tIndicator.style.display = 'flex';
       scrollToBottom();
 
-      // Iniciar el ciclo de "Morphing" de iconos
       chatLoadingInterval = setInterval(() => {
         iconIndex = (iconIndex + 1) % loadingIcons.length;
         lIcon.innerText = loadingIcons[iconIndex];
-      }, 500); // Cambia el icono cada medio segundo
+      }, 500);
 
       google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).handleUserInput(text);
     }
@@ -1598,23 +1648,80 @@
       document.getElementById('typingIndicator').style.display = 'none';
       sendBtn.disabled = false; userInput.disabled = false; userInput.focus();
       
-      if (response.success) { appendMessage(formatMarkdownBasico(response.message), 'bot'); } 
-      else { appendMessage("Error: " + response.message, 'bot'); }
+      if (response.success) { 
+        addMessage('bot', formatMarkdownBasico(response.message)); 
+      } else { 
+        addMessage('bot', "Error: " + response.message); 
+      }
     }
 
     function onError(error) {
       clearInterval(chatLoadingInterval);
       document.getElementById('typingIndicator').style.display = 'none';
       sendBtn.disabled = false; userInput.disabled = false;
-      appendMessage("Error de conexión. Intenta de nuevo.", 'bot');
+      addMessage('bot', "Error de conexión. Intenta de nuevo.");
     }
 
-    function appendMessage(text, sender) {
-      const bubble = document.createElement('div');
-      bubble.className = 'rappi-bubble rappi-bubble-' + sender;
-      bubble.innerHTML = text; 
-      chatHistory.appendChild(bubble);
+   // --- Manejo de Historial y Timestamps ---
+    
+    // Nueva función para obtener la fecha y hora exacta
+    function getTimestampConFecha() {
+      const now = new Date();
+      const opcionesFecha = { day: 'numeric', month: 'short' }; // Ej: "22 mar"
+      const opcionesHora = { hour: '2-digit', minute: '2-digit' };
+      const fechaStr = now.toLocaleDateString('es-AR', opcionesFecha);
+      const horaStr = now.toLocaleTimeString('es-AR', opcionesHora);
+      return `${fechaStr}, ${horaStr}`; // Resultado final: "22 mar, 14:30"
+    }
+
+    function addMessage(sender, text, saveToHistory = true, timeOverride = null) {
+      // Usamos la hora histórica, o creamos una nueva con fecha incluida
+      const timeString = timeOverride || getTimestampConFecha();
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `rappi-bubble rappi-bubble-${sender}`; 
+      
+      msgDiv.innerHTML = `
+        <div class="message-content">
+          ${text}
+          <span class="chat-timestamp">${timeString}</span>
+        </div>
+      `;
+      
+      chatHistory.appendChild(msgDiv);
       scrollToBottom();
+
+      if (saveToHistory) {
+        saveChatMessage(sender, text, timeString);
+      }
+    }
+
+    function saveChatMessage(sender, text, time) {
+      if (text.includes("Escribiendo") || text.includes("typing-indicator")) return;
+      let history = JSON.parse(localStorage.getItem('rappi_chat_history') || '[]');
+      history.push({ sender, text, time });
+      localStorage.setItem('rappi_chat_history', JSON.stringify(history));
+    }
+
+    // 1. Función que solo abre el Modal visual
+    function clearChatHistory() {
+      document.getElementById('deleteModal').classList.add('show');
+    }
+
+    // 2. Función que se ejecuta si el usuario presiona "Sí, borrar"
+    function executeClearHistory() {
+      // Ocultamos el modal
+      closeDeleteModal();
+      
+      // Borramos la memoria del navegador
+      localStorage.removeItem('rappi_chat_history');
+      
+      // Limpiamos la pantalla visualmente
+      chatHistory.innerHTML = '';
+      
+    // Volvemos a lanzar el saludo inicial (ahora dinámico)
+      const saludoInicial = getDailyGreeting();
+      addMessage('bot', saludoInicial, true);
     }
 
     function scrollToBottom() { chatHistory.scrollTop = chatHistory.scrollHeight; }

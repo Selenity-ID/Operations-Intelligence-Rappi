@@ -1,6 +1,6 @@
 /**
  * RAPPI OPERATIONS INTELLIGENCE BOT - Backend (Google Apps Script)
- * Arquitectura Serverless con Gemini API y Sheets como Base de Datos
+ * Arquitectura Serverless con Gemini API y Google BigQuery
  */
 
 // ==========================================
@@ -8,10 +8,17 @@
 // ==========================================
 const PROPS = PropertiesService.getScriptProperties();
 const GEMINI_API_KEY = PROPS.getProperty('GEMINI_API_KEY');
-const SPREADSHEET_ID = PROPS.getProperty('SHEET_ID');
 
-// Nombre de la hoja principal de métricas en tu Google Sheet
-const SHEET_METRICS = 'RAW_INPUT_METRICS';
+// --- CONFIGURACIÓN DE BIGQUERY ---
+const BQ_PROJECT_ID = 'selene-ia';
+const BQ_DATASET = 'Test_De_DataSet';
+
+// Tus tablas en BigQuery (Ajusta los nombres si son diferentes)
+const BQ_TABLE_METRICS = `${BQ_PROJECT_ID}.${BQ_DATASET}.Tabla_01`; 
+const BQ_TABLE_ORDERS = `${BQ_PROJECT_ID}.${BQ_DATASET}.Tabla_02`; // Sube la pestaña RAW_ORDERS a esta tabla
+
+// Función Helper: Limpia porcentajes y cambia comas regionales por puntos antes de convertir a número
+const safeNum = (col) => `SAFE_CAST(REPLACE(REPLACE(CAST(${col} AS STRING), '%', ''), ',', '.') AS FLOAT64)`;
 
 // ==========================================
 // 1. INICIALIZACIÓN DE LA WEB APP
@@ -29,61 +36,49 @@ function doGet(e) {
 // ==========================================
 function handleUserInput(userMessage) {
   try {
-    // Recuperar el historial de la caché para mantener el contexto
     const cache = CacheService.getUserCache();
     let history = JSON.parse(cache.get('chatHistory') || '[]');
     
-    // Paso 1: Clasificar la intención del usuario usando Gemini (JSON Mode)
     const analysis = classifyIntention(userMessage, history);
-    
     let botResponse = "";
     
-    // Paso 2: Ejecutar la acción operativa según la intención
     if (analysis.type === 'anomaly_report') {
-      const anomalyData = findAnomaliesInSheets();
+      const anomalyData = findAnomaliesInBigQuery();
       botResponse = generateNaturalLanguage(userMessage, JSON.stringify(anomalyData), history);
       
     } else if (analysis.type === 'data_query') {
-      const rawData = querySpreadsheet(analysis.filters);
+      const rawData = queryBigQueryDatabase(analysis.filters);
       botResponse = generateNaturalLanguage(userMessage, JSON.stringify(rawData), history);
       
     } else {
-      // Conversación general o saludo
       botResponse = generateNaturalLanguage(userMessage, "No se requieren datos de la base de datos para responder a esto.", history);
     }
     
-    // Paso 3: Actualizar el historial y guardar en caché (Máximo 10 interacciones)
     history.push({ role: "user", content: userMessage });
     history.push({ role: "assistant", content: botResponse });
     if (history.length > 10) history = history.slice(-10);
-    cache.put('chatHistory', JSON.stringify(history), 21600); // Guardar por 6 horas
+    cache.put('chatHistory', JSON.stringify(history), 21600);
     
     return { success: true, message: botResponse };
     
   } catch (error) {
     console.error("Error Operativo: ", error);
-    return { success: false, message: "Hubo un error al procesar tu solicitud operativa. Intenta reformular la pregunta." };
+    return { success: false, message: "Hubo un error al procesar tu solicitud en la base de datos." };
   }
 }
 
 // ==========================================
 // 3. MOTOR DE IA Y CLASIFICACIÓN
 // ==========================================
-
 function classifyIntention(message, history) {
   const systemPrompt = `
     Eres el motor de enrutamiento de un bot de datos de Rappi. 
     Analiza el mensaje del usuario y devuelve SOLO un JSON válido.
-    Tipos permitidos: 'data_query' (métricas, zonas, ciudades, tendencias, comparaciones), 'anomaly_report' (alertas, anomalías, caídas), 'general' (saludos).
-    Si es 'data_query', incluye un objeto 'filters' con las claves que detectes (ej. city, zone, metric, zone_type).
+    Tipos permitidos: 'data_query' (métricas, zonas, ciudades, tendencias), 'anomaly_report' (alertas, anomalías), 'general' (saludos).
+    Si es 'data_query', incluye un objeto 'filters' con las claves que detectes.
     
-    REGLAS DE ORDENAMIENTO: 
-    - Si el usuario pide "mejores", "mayores", "top" o "más alto", agrega "order": "desc". 
-    - Si pide "peores", "menores", "bottom" o "más bajo", agrega "order": "asc". 
-    - Si pide una cantidad, agrega "limit": numero.
-    
-    IMPORTANTE: Si el usuario menciona "Lead Penetration", el valor en el JSON debe ser exactamente "Lead Penetration". Si menciona "Wealthy" o "Non Wealthy", ponlo en "zone_type".
-    
+    REGLAS: Si el usuario pide "mejores" agrega "order": "desc". Si pide "peores" agrega "order": "asc". Si pide cantidad agrega "limit": numero.
+    IMPORTANTE: Si menciona "Lead Penetration", el valor en metric debe ser exacto. Si menciona "Wealthy", va en "zone_type".
     Formato esperado: {"type": "data_query", "filters": {"metric": "Lead Penetration", "order": "asc", "limit": 5, "zone_type": "Wealthy"}}
   `;
   
@@ -100,39 +95,29 @@ function classifyIntention(message, history) {
 function generateNaturalLanguage(userMessage, dataContext, history) {
   const systemPrompt = `
     Eres un Analista Senior de Operaciones en Rappi. 
-    Tu tarea es responder a las preguntas de los managers usando EXCLUSIVAMENTE los datos JSON proporcionados en el contexto.
+    Responde a las preguntas usando EXCLUSIVAMENTE los datos JSON proporcionados en el contexto extraídos de BigQuery.
     
-    REGLA ESTRICTA DE FORMATO:
-    NO uses Markdown plano. Devuelve tu respuesta EXCLUSIVAMENTE en formato HTML usando la siguiente estructura de "Executive Dashboard" para que el frontend pueda renderizarlo y exportarlo a PDF:
-    
+    REGLA ESTRICTA DE FORMATO HTML PARA EXPORTACIÓN:
     <div class="rappi-report-card">
-      <h3 class="rappi-report-title">📊 [Título del Reporte o Análisis]</h3>
-      <p class="rappi-report-summary">[Breve resumen ejecutivo del hallazgo, tendencia o comparación]</p>
-      
+      <h3 class="rappi-report-title">📊 [Título del Análisis]</h3>
+      <p class="rappi-report-summary">[Breve resumen ejecutivo]</p>
       <table class="rappi-table">
         <thead>
-          <tr><th>Ciudad</th><th>Zona/Tipo</th><th>Métrica</th><th>Valor L0W (Actual)</th><th>Tendencia (vs L1W)</th></tr>
+          <tr><th>Ciudad</th><th>Zona/Tipo</th><th>Métrica</th><th>Valor L0W</th><th>Tendencia</th></tr>
         </thead>
         <tbody>
           <tr>
-            <td>[Ciudad]</td>
-            <td>[Zona]</td>
-            <td>[Nombre Métrica]</td>
-            <td>
-              <strong>[Valor formateado, ej. 0.4%]</strong>
-              <div class="rappi-bar-container"><div class="rappi-bar" style="width: [PORCENTAJE_CALCULADO]%;"></div></div>
-            </td>
-            <td>[Ej. ▲ 2% o ▼ -5% frente a la semana pasada]</td>
+            <td>[Ciudad]</td><td>[Zona]</td><td>[Nombre Métrica]</td>
+            <td><strong>[Valor]</strong><div class="rappi-bar-container"><div class="rappi-bar" style="width:[PORCENTAJE]%;"></div></div></td>
+            <td>[Ej. ▲ 2% o ▼ -5%]</td>
           </tr>
         </tbody>
       </table>
-      
       <div class="rappi-report-footer">
-        <p><strong>💡 Insight Operativo:</strong> [Una recomendación de negocio sólida basada en estos datos. Si ves caídas continuas en L1W/L2W/L3W, menciónalas aquí.]</p>
-        <button class="btn-pdf" onclick="descargarPDF(this)">📄 Descargar Reporte en PDF</button>
+        <p><strong>💡 Insight Operativo:</strong> [Recomendación basada en datos]</p>
+        <button class="btn-pdf" onclick="descargarPDF(this)">📄 Descargar Reporte PDF</button>
       </div>
     </div>
-    
     Contexto de datos: ${dataContext}
   `;
   
@@ -147,143 +132,107 @@ function generateNaturalLanguage(userMessage, dataContext, history) {
     systemInstruction: { parts: [{ text: systemPrompt }] },
     generationConfig: { temperature: 0.3 } 
   };
-  
   return callGeminiAPI(payload);
 }
 
 function callGeminiAPI(payload) {
-  // Nota: Actualiza a la versión 2.5 según tu preferencia
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  const options = {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
-  
+  const options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
   const response = UrlFetchApp.fetch(url, options);
   const json = JSON.parse(response.getContentText());
-  
   if (json.error) throw new Error(json.error.message);
-  
   return json.candidates[0].content.parts[0].text;
 }
 
 // ==========================================
-// 4. LÓGICA DE BASE DE DATOS Y BÚSQUEDA
+// 4. LÓGICA CORE: BIGQUERY ENGINE
 // ==========================================
+// Helper para ejecutar consultas SQL y parsear la respuesta de la API de BQ
+function runQuery(sql) {
+  const request = { query: sql, useLegacySql: false };
+  const queryResults = BigQuery.Jobs.query(request, BQ_PROJECT_ID);
+  
+  if (!queryResults.rows) return [];
+  
+  const headers = queryResults.schema.fields.map(field => field.name);
+  return queryResults.rows.map(row => {
+    let rowData = {};
+    row.f.forEach((col, index) => { rowData[headers[index]] = col.v; });
+    return rowData;
+  });
+}
 
-function querySpreadsheet(filters) {
+function queryBigQueryDatabase(filters) {
   if (!filters || Object.keys(filters).length === 0) return "No se detectaron filtros válidos.";
   
   try {
-    const sheetMetrics = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_METRICS);
-    if (!sheetMetrics) return `Error Crítico: No se encontró la pestaña '${SHEET_METRICS}'.`;
+    let conditions = [];
+    if (filters.city) conditions.push(`LOWER(CITY) LIKE LOWER('%${filters.city}%')`);
+    if (filters.zone) conditions.push(`LOWER(ZONE) LIKE LOWER('%${filters.zone}%')`);
+    if (filters.metric) conditions.push(`LOWER(METRIC) LIKE LOWER('%${filters.metric}%')`);
+    if (filters.zone_type) conditions.push(`LOWER(ZONE_TYPE) LIKE LOWER('%${filters.zone_type}%')`);
     
-    const data = sheetMetrics.getDataRange().getValues();
-    const headers = data[0];
-    const rows = data.slice(1);
+    let whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
     
-    // Índices de columnas críticas y de histórico (Tendencias de 4 semanas)
-    const idxCity = headers.indexOf('CITY');
-    const idxZone = headers.indexOf('ZONE');
-    const idxZoneType = headers.indexOf('ZONE_TYPE');
-    const idxMetric = headers.indexOf('METRIC');
-    const idxL0W = headers.indexOf('L0W_ROLL'); // Actual
-    const idxL1W = headers.indexOf('L1W_ROLL'); // 1 semana atrás
-    const idxL2W = headers.indexOf('L2W_ROLL'); // 2 semanas atrás
-    const idxL3W = headers.indexOf('L3W_ROLL'); // 3 semanas atrás
-    const idxL4W = headers.indexOf('L4W_ROLL'); // 4 semanas atrás
+    let orderClause = '';
+    if (filters.order === 'asc') orderClause = `ORDER BY ${safeNum('L0W_ROLL')} ASC`;
+    else if (filters.order === 'desc') orderClause = `ORDER BY ${safeNum('L0W_ROLL')} DESC`;
     
-    // FILTRADO (Fuzzy Search)
-    let filteredRows = rows.filter(row => {
-      let match = true;
-      const rowText = row.join(" | ").toLowerCase();
-      
-      if (filters.city) match = match && rowText.includes(filters.city.toLowerCase());
-      if (filters.zone) match = match && rowText.includes(filters.zone.toLowerCase());
-      if (filters.metric) match = match && rowText.includes(filters.metric.toLowerCase());
-      if (filters.zone_type) match = match && rowText.includes(filters.zone_type.toLowerCase());
-      
-      return match;
-    });
+    let limit = filters.limit ? filters.limit + 10 : 30;
     
-    if (filteredRows.length === 0) {
-      return `La búsqueda en la base de datos no arrojó resultados para los filtros: ${JSON.stringify(filters)}`;
-    }
+    // Consulta SQL Dinámica
+    const sql = `
+      SELECT CITY as Ciudad, ZONE as Zona, ZONE_TYPE as Tipo_Zona, METRIC as Metrica,
+             ${safeNum('L0W_ROLL')} as Semana_L0W_Actual,
+             ${safeNum('L1W_ROLL')} as Semana_L1W,
+             ${safeNum('L2W_ROLL')} as Semana_L2W,
+             ${safeNum('L3W_ROLL')} as Semana_L3W,
+             ${safeNum('L4W_ROLL')} as Semana_L4W
+      FROM \`${BQ_TABLE_METRICS}\`
+      ${whereClause}
+      ${orderClause}
+      LIMIT ${limit}
+    `;
     
-    // ORDENAMIENTO NATIVO JS (Antes de cortar la matriz)
-    if (filters.order === 'asc') {
-      filteredRows.sort((a, b) => (parseFloat(a[idxL0W]) || 0) - (parseFloat(b[idxL0W]) || 0));
-    } else if (filters.order === 'desc') {
-      filteredRows.sort((a, b) => (parseFloat(b[idxL0W]) || 0) - (parseFloat(a[idxL0W]) || 0));
-    }
-    
-    // LÍMITE DE CONTEXTO
-    let limit = filters.limit ? filters.limit + 10 : 30; // Damos un poco de margen para comparaciones
-    filteredRows = filteredRows.slice(0, limit);
-    
-    // ARMADO DEL JSON CON HISTÓRICO DE TENDENCIAS
-    const result = filteredRows.map(row => {
-      return {
-        "Ciudad": row[idxCity],
-        "Zona": row[idxZone],
-        "Tipo_Zona": row[idxZoneType],
-        "Metrica": row[idxMetric],
-        "Semana_L0W_Actual": parseFloat(row[idxL0W]) || 0,
-        "Semana_L1W": parseFloat(row[idxL1W]) || 0,
-        "Semana_L2W": parseFloat(row[idxL2W]) || 0,
-        "Semana_L3W": parseFloat(row[idxL3W]) || 0,
-        "Semana_L4W": parseFloat(row[idxL4W]) || 0
-      };
-    });
-    
-    return JSON.stringify(result);
+    const data = runQuery(sql);
+    if(data.length === 0) return `La búsqueda en BigQuery no arrojó resultados para: ${JSON.stringify(filters)}`;
+    return JSON.stringify(data);
     
   } catch (error) {
-    return "Error de ejecución en la consulta: " + error.message;
+    return "Error de ejecución SQL en BigQuery: " + error.message;
   }
 }
 
 // ==========================================
-// 5. SISTEMA DE DETECCIÓN DE ANOMALÍAS
+// 5. SISTEMA DE DETECCIÓN DE ANOMALÍAS (Vía SQL)
 // ==========================================
-function findAnomaliesInSheets() {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_METRICS);
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const rows = data.slice(1);
+function findAnomaliesInBigQuery() {
+  const sql = `
+    SELECT CITY as Ciudad, ZONE as Zona, METRIC as Metrica,
+           ${safeNum('L1W_ROLL')} as Semana_Anterior_L1W,
+           ${safeNum('L0W_ROLL')} as Semana_Actual_L0W,
+           ROUND(((${safeNum('L1W_ROLL')} - ${safeNum('L0W_ROLL')}) / NULLIF(${safeNum('L1W_ROLL')}, 0)) * 100, 2) as Caida_Porcentual_Num
+    FROM \`${BQ_TABLE_METRICS}\`
+    WHERE ${safeNum('L1W_ROLL')} > 0
+      AND ((${safeNum('L1W_ROLL')} - ${safeNum('L0W_ROLL')}) / NULLIF(${safeNum('L1W_ROLL')}, 0)) > 0.15
+    ORDER BY Caida_Porcentual_Num DESC
+    LIMIT 10
+  `;
   
-  const idxCity = headers.indexOf('CITY');
-  const idxZone = headers.indexOf('ZONE');
-  const idxMetric = headers.indexOf('METRIC');
-  const idxL1W = headers.indexOf('L1W_ROLL');
-  const idxL0W = headers.indexOf('L0W_ROLL');
-  
-  let anomalies = [];
-  
-  rows.forEach(row => {
-    let valL1 = parseFloat(row[idxL1W]) || 0;
-    let valL0 = parseFloat(row[idxL0W]) || 0;
-    
-    // Detectamos caídas superiores al 15% de una semana a la otra en métricas donde L1W era positivo
-    if (valL1 > 0 && ((valL1 - valL0) / valL1) > 0.15) {
-      anomalies.push({
-        "Ciudad": row[idxCity],
-        "Zona": row[idxZone],
-        "Metrica": row[idxMetric],
-        "Caida_Porcentual": (((valL1 - valL0) / valL1) * 100).toFixed(2) + "%",
-        "Semana_Anterior_L1W": valL1,
-        "Semana_Actual_L0W": valL0
-      });
-    }
-  });
-  
-  // Ordenamos para mostrar las caídas más dramáticas primero
-  anomalies.sort((a, b) => parseFloat(b.Caida_Porcentual) - parseFloat(a.Caida_Porcentual));
-  
-  // Devolvemos el Top 10 de anomalías críticas
-  return anomalies.slice(0, 10); 
+  try {
+    const data = runQuery(sql);
+    return data.map(d => ({
+      Ciudad: d.Ciudad,
+      Zona: d.Zona,
+      Metrica: d.Metrica,
+      Caida_Porcentual: d.Caida_Porcentual_Num + "%",
+      Semana_Anterior_L1W: d.Semana_Anterior_L1W,
+      Semana_Actual_L0W: d.Semana_Actual_L0W
+    }));
+  } catch (error) {
+    console.error("Error en Anomalías BQ:", error);
+    return [];
+  }
 }
 
 function clearChatHistory() {
@@ -292,120 +241,141 @@ function clearChatHistory() {
 }
 
 // ==========================================
-// 6. MOTOR DEL DASHBOARD (Agregación de Datos y Filtros)
+// 6. MOTOR DEL DASHBOARD (Agregación Nivel Data Warehouse - BigQuery)
 // ==========================================
 function getDashboardData(filters = {countries: [], zoneTypes: []}) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    
-    const hasCountryFilter = filters.countries && filters.countries.length > 0;
-    const hasZoneTypeFilter = filters.zoneTypes && filters.zoneTypes.length > 0;
-
-    // 1. Extraer Metadatos (Para crear el cruce de Zona -> Tipo de Zona)
-    const sheetMetrics = ss.getSheetByName('RAW_INPUT_METRICS');
-    const metricsData = sheetMetrics.getDataRange().getValues();
-    const mHeaders = metricsData[0];
-    
-    const idxCity = mHeaders.indexOf('CITY');
-    const idxZone = mHeaders.indexOf('ZONE');
-    const idxMetric = mHeaders.indexOf('METRIC');
-    const idxML0 = mHeaders.indexOf('L0W_ROLL');
-    const idxCountry = mHeaders.indexOf('COUNTRY');
-    const idxZoneType = mHeaders.indexOf('ZONE_TYPE');
-    
-    let zoneTypeMap = {}; // Mapa para relacionar RAW_ORDERS con ZONE_TYPE
-    let countriesSet = new Set();
-    let zoneTypesSet = new Set();
-
-    for(let i = 1; i < metricsData.length; i++) {
-      let z = metricsData[i][idxZone];
-      let zt = metricsData[i][idxZoneType];
-      if (z && zt) zoneTypeMap[z] = zt;
-      if (metricsData[i][idxCountry]) countriesSet.add(metricsData[i][idxCountry]);
-      if (zt) zoneTypesSet.add(zt);
-    }
-
-    // 2. Procesar Órdenes (Aplicando Filtros)
-    const sheetOrders = ss.getSheetByName('RAW_ORDERS');
-    const ordersData = sheetOrders.getDataRange().getValues();
-    const ordersHeaders = ordersData[0];
-    const idxOrdL0 = ordersHeaders.indexOf('L0W');
-    const idxOrdL1 = ordersHeaders.indexOf('L1W');
-    
-    let totalOrdersL0 = 0;
-    let totalOrdersL1 = 0;
-    let weeklyOrdersTrend = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    
-    for(let i = 1; i < ordersData.length; i++) {
-      let rowCountry = ordersData[i][0]; // COUNTRY
-      let rowZone = ordersData[i][2]; // ZONE
-      let rowZoneType = zoneTypeMap[rowZone];
-
-      // Aplicar filtros dinámicos
-      if (hasCountryFilter && !filters.countries.includes(rowCountry)) continue;
-      if (hasZoneTypeFilter && !filters.zoneTypes.includes(rowZoneType)) continue;
-
-      totalOrdersL0 += parseFloat(ordersData[i][idxOrdL0]) || 0;
-      totalOrdersL1 += parseFloat(ordersData[i][idxOrdL1]) || 0;
-      for(let w = 0; w <= 8; w++) {
-        weeklyOrdersTrend[8-w] += parseFloat(ordersData[i][ordersHeaders.indexOf(`L${w}W`)]) || 0;
+    // --- Parseador Robusto a prueba de regiones ---
+    const robustParse = (val) => {
+      if (val === null || val === undefined || val === '') return 0;
+      let s = String(val).replace(/%/g, '').trim();
+      // Si el número viene con coma regional (ej. 0,6023 o 1.500,50)
+      if (s.includes(',')) {
+        s = s.replace(/\./g, ''); // Eliminamos puntos de miles si los hay
+        s = s.replace(',', '.');  // Convertimos la coma decimal en punto
       }
-    }
-    const wowGrowth = totalOrdersL1 > 0 ? ((totalOrdersL0 - totalOrdersL1) / totalOrdersL1) * 100 : 0;
+      return parseFloat(s) || 0;
+    };
 
-    // 3. Procesar Métricas y Profit (Aplicando Filtros)
+    let whereMetricsArr = [];
+    let whereOrdersArr = [];
+    
+    if (filters.countries && filters.countries.length > 0) {
+      const cList = filters.countries.map(c => `'${c}'`).join(',');
+      whereMetricsArr.push(`COUNTRY IN (${cList})`);
+      whereOrdersArr.push(`COUNTRY IN (${cList})`);
+    }
+    if (filters.zoneTypes && filters.zoneTypes.length > 0) {
+      const zList = filters.zoneTypes.map(z => `'${z}'`).join(',');
+      whereMetricsArr.push(`ZONE_TYPE IN (${zList})`);
+      whereOrdersArr.push(`ZONE IN (SELECT DISTINCT ZONE FROM \`${BQ_TABLE_METRICS}\` WHERE ZONE_TYPE IN (${zList}))`);
+    }
+
+    let whereMetrics = whereMetricsArr.length > 0 ? 'WHERE ' + whereMetricsArr.join(' AND ') : '';
+    let whereOrders = whereOrdersArr.length > 0 ? 'WHERE ' + whereOrdersArr.join(' AND ') : '';
+
+    // 1. Obtener Filtros Dinámicos
+    const sqlFilters = `SELECT DISTINCT COUNTRY FROM \`${BQ_TABLE_METRICS}\` WHERE COUNTRY IS NOT NULL`;
+    const sqlZoneTypes = `SELECT DISTINCT ZONE_TYPE FROM \`${BQ_TABLE_METRICS}\` WHERE ZONE_TYPE IS NOT NULL`;
+    const countriesList = runQuery(sqlFilters).map(r => r.COUNTRY).sort();
+    const zoneTypesList = runQuery(sqlZoneTypes).map(r => r.ZONE_TYPE).sort();
+
+    // 2. Extraer TODAS las Métricas (Profit, CVR y Breakeven - NOMBRES EXACTOS)
+    const sqlMetrics = `
+      SELECT COUNTRY as pais, CITY as ciudad, ZONE as zona, ZONE_TYPE as tipo, METRIC as metricName, 
+             L0W_ROLL as valL0, 
+             L1W_ROLL as valL1
+      FROM \`${BQ_TABLE_METRICS}\`
+      ${whereMetrics ? whereMetrics + " AND " : "WHERE "} METRIC IN ('Gross Profit UE', 'Retail SST > SS CVR', '% PRO Users Who Breakeven')
+    `;
+    const metricsData = runQuery(sqlMetrics);
+    
     let profitZones = [];
-    let avgProfitSum = 0;
-    let profitCount = 0;
+    let avgProfitSum = 0; let profitCount = 0;
+    let cvrSumL0 = 0; let cvrSumL1 = 0; let cvrCount = 0;
+    let beSumL0 = 0; let beSumL1 = 0; let beCount = 0;
 
-    for(let i = 1; i < metricsData.length; i++) {
-      let rowCountry = metricsData[i][idxCountry];
-      let rowZoneType = metricsData[i][idxZoneType];
-
-      if (hasCountryFilter && !filters.countries.includes(rowCountry)) continue;
-      if (hasZoneTypeFilter && !filters.zoneTypes.includes(rowZoneType)) continue;
-
-      let metricName = metricsData[i][idxMetric];
-      let valL0 = parseFloat(metricsData[i][idxML0]) || 0;
+    metricsData.forEach(row => {
+      let valL0 = robustParse(row.valL0);
+      let valL1 = robustParse(row.valL1);
       
-      if (metricName === 'Gross Profit UE') {
-        avgProfitSum += valL0;
-        profitCount++;
+      // Mapeo con los nombres estrictos de la base de datos
+      if (row.metricName === 'Gross Profit UE') {
+        avgProfitSum += valL0; profitCount++;
         profitZones.push({
-          pais: rowCountry || '-',
-          ciudad: metricsData[i][idxCity] || '-',
-          zona: metricsData[i][idxZone] || '-',
-          tipo: rowZoneType || 'N/A',
-          profit: valL0
+          pais: row.pais || '-', ciudad: row.ciudad || '-', zona: row.zona || '-', tipo: row.tipo || 'N/A', profit: valL0
         });
+      } else if (row.metricName === 'Retail SST > SS CVR') {
+        cvrSumL0 += valL0; cvrSumL1 += valL1; cvrCount++;
+      } else if (row.metricName === '% PRO Users Who Breakeven') {
+        beSumL0 += valL0; beSumL1 += valL1; beCount++;
       }
-    }
-    
-    // Extraer Top 5 Peores (Alertas)
+    });
+
+    // Cálculos Finales
     profitZones.sort((a, b) => a.profit - b.profit);
     const topOffenders = profitZones.slice(0, 5);
     const avgProfit = profitCount > 0 ? (avgProfitSum / profitCount) : 0;
-    
-    // Extraer Top 100 Mejores (Para la Tabla Detallada)
     const detailedData = [...profitZones].sort((a, b) => b.profit - a.profit).slice(0, 100);
+
+    const avgCvrL0 = cvrCount > 0 ? ((cvrSumL0 / cvrCount) * 100) : 0;
+    const cvrWow = cvrCount > 0 ? (avgCvrL0 - ((cvrSumL1 / cvrCount) * 100)) : 0;
+    
+    const avgBeL0 = beCount > 0 ? ((beSumL0 / beCount) * 100) : 0;
+    const beWow = beCount > 0 ? (avgBeL0 - ((beSumL1 / beCount) * 100)) : 0;
+
+    // 3. Extraer Órdenes (Tendencias)
+    let ordersTrend = [0,0,0,0,0,0,0,0,0];
+    let totalOrdersL0 = 0;
+    let wowGrowth = 0;
+    
+    try {
+      // Usamos alias explícitos para no confundir a JavaScript
+      const sqlOrders = `
+        SELECT 
+          SUM(L0W) as valL0W, SUM(L1W) as valL1W, SUM(L2W) as valL2W, 
+          SUM(L3W) as valL3W, SUM(L4W) as valL4W, SUM(L5W) as valL5W, 
+          SUM(L6W) as valL6W, SUM(L7W) as valL7W, SUM(L8W) as valL8W
+        FROM \`${BQ_TABLE_ORDERS}\` ${whereOrders}
+      `;
+      const ordersData = runQuery(sqlOrders);
+      
+      if (ordersData.length > 0 && ordersData[0].valL0W !== null) {
+        const o = ordersData[0];
+        totalOrdersL0 = robustParse(o.valL0W);
+        let l1 = robustParse(o.valL1W);
+        
+        wowGrowth = l1 > 0 ? ((totalOrdersL0 - l1) / l1) * 100 : 0;
+        
+        // Armamos la gráfica desde L8W (hace 2 meses) hasta L0W (actual)
+        ordersTrend = [
+          robustParse(o.valL8W), robustParse(o.valL7W), robustParse(o.valL6W), 
+          robustParse(o.valL5W), robustParse(o.valL4W), robustParse(o.valL3W), 
+          robustParse(o.valL2W), l1, totalOrdersL0
+        ];
+      }
+    } catch (errOrders) {
+      console.log("Aviso Órdenes:", errOrders);
+    }
 
     return JSON.stringify({
       success: true,
       kpis: {
         totalOrders: totalOrdersL0,
-        wowGrowth: wowGrowth.toFixed(2),
-        avgProfit: avgProfit.toFixed(2),
+        wowGrowth: parseFloat(wowGrowth),
+        avgProfit: avgProfit,
+        cvr: avgCvrL0,
+        cvrWow: cvrWow,
+        breakeven: avgBeL0,
+        breakevenWow: beWow
       },
-      trends: { orders: weeklyOrdersTrend },
+      trends: { orders: ordersTrend },
       offenders: topOffenders,
       detailedData: detailedData,
-      filtersData: {
-        countries: Array.from(countriesSet).sort(),
-        zoneTypes: Array.from(zoneTypesSet).sort()
-      }
+      filtersData: { countries: countriesList, zoneTypes: zoneTypesList }
     });
 
   } catch (error) {
-    return JSON.stringify({ success: false, error: error.message });
+    return JSON.stringify({ success: false, error: "Error BQ Dashboard: " + error.message });
   }
 }

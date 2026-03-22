@@ -77,9 +77,23 @@ function classifyIntention(message, history) {
     Tipos permitidos: 'data_query' (métricas, zonas, ciudades, tendencias), 'anomaly_report' (alertas, anomalías), 'general' (saludos).
     Si es 'data_query', incluye un objeto 'filters' con las claves que detectes.
     
-    REGLAS: Si el usuario pide "mejores" agrega "order": "desc". Si pide "peores" agrega "order": "asc". Si pide cantidad agrega "limit": numero.
-    IMPORTANTE: Si menciona "Lead Penetration", el valor en metric debe ser exacto. Si menciona "Wealthy", va en "zone_type".
-    Formato esperado: {"type": "data_query", "filters": {"metric": "Lead Penetration", "order": "asc", "limit": 5, "zone_type": "Wealthy"}}
+    REGLAS DE BÚSQUEDA: 
+    - Si el usuario pide "mejores", "top", "mayor" agrega "order": "desc". 
+    - Si pide "peores", "bottom", "menor" agrega "order": "asc". 
+    - Si pide cantidad agrega "limit": numero.
+    - Si menciona "Wealthy" o "Non Wealthy", va en la clave "zone_type".
+    - Si menciona un país (ej. "México", "Colombia", "Brasil"), conviértelo a su código ISO de 2 letras (ej. "MX", "CO", "BR") en la clave "country".
+    
+    REGLA ESTRICTA DE DICCIONARIO DE DATOS (Mapeo de Métricas):
+    Cuando el usuario pregunte por métricas, DEBES mapear su lenguaje natural a los nombres EXACTOS de la base de datos en la clave "metric":
+    - Si mencionan "Retail CVR" o conversión de retail -> "Retail SST > SS CVR"
+    - Si mencionan "Breakeven" o retención PRO -> "% PRO Users Who Breakeven"
+    - Si mencionan "Gross Profit", "profit" o rentabilidad -> "Gross Profit UE"
+    - Si mencionan "Lead Penetration" -> "Lead Penetration"
+    NUNCA inventes nombres de métricas en el JSON que no sean estos.
+
+    Formato esperado de ejemplo: 
+    {"type": "data_query", "filters": {"metric": "Retail SST > SS CVR", "order": "desc", "limit": 5, "country": "MX"}}
   `;
   
   const payload = {
@@ -95,9 +109,18 @@ function classifyIntention(message, history) {
 function generateNaturalLanguage(userMessage, dataContext, history) {
   const systemPrompt = `
     Eres un Analista Senior de Operaciones en Rappi. 
-    Responde a las preguntas usando EXCLUSIVAMENTE los datos JSON proporcionados en el contexto extraídos de BigQuery.
     
-    REGLA ESTRICTA DE FORMATO HTML PARA EXPORTACIÓN:
+    REGLA DE IDENTIDAD Y CONVERSACIÓN (PRIORIDAD MÁXIMA):
+    Si el usuario te saluda, hace una pregunta general, o pregunta qué puedes hacer o qué métricas puedes analizar, DEBES responder de forma conversacional, amigable y natural (SIN usar la tabla HTML). 
+    Preséntate como experto y lista las métricas principales que puedes analizar:
+    1. Gross Profit UE (Rentabilidad y Unit Economics)
+    2. Retail CVR (Tasa de conversión de búsqueda a sesión en Retail)
+    3. Breakeven PRO (Porcentaje de usuarios PRO que recuperan su membresía)
+    4. Órdenes Totales y Evolución de la Demanda
+    PROHIBICIÓN ESTRICTA: NUNCA menciones la palabra "JSON", "Prompt", "BigQuery", "Contexto" ni expliques tu arquitectura interna. Nunca digas que te faltan datos si solo te están saludando.
+
+    REGLA PARA CONSULTAS DE DATOS OPERATIVOS:
+    Si el usuario pide analizar datos específicos, responde usando EXCLUSIVAMENTE los datos proporcionados en el "Contexto de datos". En este caso, DEBES usar la siguiente REGLA ESTRICTA DE FORMATO HTML PARA EXPORTACIÓN:
     <div class="rappi-report-card">
       <h3 class="rappi-report-title">📊 [Título del Análisis]</h3>
       <p class="rappi-report-summary">[Breve resumen ejecutivo]</p>
@@ -118,6 +141,7 @@ function generateNaturalLanguage(userMessage, dataContext, history) {
         <button class="btn-pdf" onclick="descargarPDF(this)">📄 Descargar Reporte PDF</button>
       </div>
     </div>
+    
     Contexto de datos: ${dataContext}
   `;
   

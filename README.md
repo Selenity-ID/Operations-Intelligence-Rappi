@@ -1,69 +1,116 @@
-# 🚀 Rappi Operations Intelligence | AI-Powered Assistant
+# Rappi Operations Intelligence Bot - Prueba Técnica
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
-![Architecture](https://img.shields.io/badge/architecture-Serverless-orange.svg)
-![Tech Stack](https://img.shields.io/badge/tech_stack-BigQuery%20%7C%20Gemini%20%7C%20GAS-success.svg)
-
-Un MVP (Minimum Viable Product) de nivel Enterprise diseñado para democratizar el acceso a datos operacionales, eliminando la fricción técnica para los equipos de Strategy, Planning & Analytics. Este sistema combina el poder de cómputo de un Data Warehouse (BigQuery) con Inteligencia Artificial generativa para ofrecer *insights* en lenguaje natural y dashboards dinámicos.
-
-## 🎯 El Desafío de Negocio
-
-Los Operational Managers invierten horas semanales en extraer respuestas de negocio de millones de filas de datos, requiriendo habilidades avanzadas en SQL o Python. 
-**La solución:** Un pipeline desacoplado que delega el procesamiento matemático a Google BigQuery (procesando datos a escala en milisegundos) y utiliza IA para enrutamiento semántico y generación de reportes ejecutivos.
-
-## ✨ Características Principales
-
-- **🤖 Asistente Operativo IA:** Bot conversacional que entiende lenguaje natural. Capaz de realizar cruces de datos, comparaciones históricas y extraer el "Top de ofensores".
-- **📊 Dashboard Interactivo:** Visualizaciones renderizadas con `ApexCharts`, incorporando filtros dinámicos cruzados (País y Tipo de Zona) alimentados directamente mediante consultas SQL en tiempo real.
-- **🚨 Detección Autónoma de Anomalías:** Motor SQL programado para escanear y alertar sobre caídas de rentabilidad (Gross Profit UE) superiores al 15% WoW (Week over Week), filtrando automáticamente *outliers* de la base de datos.
-- **🛡️ Parseo Regional Robusto:** Implementación de limpieza de datos en JavaScript para estandarizar formatos numéricos regionales (comas vs. puntos) asegurando la integridad matemática de los FLOATS.
-- **📄 Exportación Ejecutiva:** Generación de reportes PDF *pixel-perfect* en un clic utilizando `html2pdf.js`.
-- **⚡ Arquitectura 100% Serverless:** Ecosistema nativo en Google Cloud Platform (BigQuery + Apps Script V8), garantizando costo cero de infraestructura base y alta escalabilidad (de 12k a 100M+ registros sin latencia).
-
-## 🧠 Arquitectura del Sistema (Pipeline Desacoplado)
-
-Para evitar alucinaciones, cuellos de botella de memoria y el desbordamiento de tokens, el sistema implementa una estricta separación de responsabilidades:
-
-1. **Enrutamiento Semántico:** Gemini 2.5 Flash clasifica la intención del usuario y genera un JSON estricto con los filtros deseados.
-2. **Ejecución Data Warehouse:** El backend en Google Apps Script traduce la intención a una consulta SQL dinámica. **Google BigQuery** ejecuta el cruce de datos y devuelve únicamente la matriz resultante.
-3. **Generación de Insights:** Solo el micro-contexto procesado matemáticamente (ej. el Top 5 exacto) es devuelto a la IA, la cual redacta un análisis ejecutivo determinístico en formato HTML.
-
-## 🛠️ Tech Stack
-
-- **Frontend:** Vanilla HTML5, CSS3, JavaScript (ES6+), UI inspirada en Material Design / Bento Box.
-- **Backend & Orquestador:** Google Apps Script (JS V8).
-- **Data Warehouse:** Google BigQuery (Standard SQL).
-- **IA Engine:** API de Gemini 2.5 Flash (Google AI Studio).
-- **Librerías Visuales:** ApexCharts (Gráficos), Google Material Icons, html2pdf.
-
-## 🚀 Guía de Despliegue (GCP / Apps Script)
-
-Este proyecto requiere un entorno de Google Cloud Platform con facturación habilitada (o capa gratuita) para el uso de BigQuery.
-
-1. Clona este repositorio: `git clone https://github.com/Selenity-ID/Operations-Intelligence-Rappi.git`
-2. Configura tu entorno en Google Cloud:
-   - Crea un proyecto en GCP y habilita la **BigQuery API**.
-   - Crea un dataset y sube las tablas operacionales (asegurando el formato de *Locale* a United States para integridad de decimales).
-3. Crea un nuevo proyecto en [Google Apps Script](https://script.google.com/).
-4. Copia el contenido de `Codigo.gs` e `index.html`. Actualiza las constantes `BQ_PROJECT_ID` y `BQ_DATASET` en el código.
-5. En el editor de Apps Script, añade el servicio **BigQuery API**.
-6. En el archivo `appsscript.json`, añade los `oauthScopes` necesarios para BigQuery y Google Drive.
-7. En **Configuración del Proyecto > Propiedades del script**, añade la variable de entorno:
-   - `GEMINI_API_KEY`: Tu clave de API de Google AI Studio.
-8. Haz clic en **Implementar > Nueva Implementación > Aplicación Web**.
-
-## 💬 Casos de Uso de Prueba (Prompts)
-
-Prueba interactuar con el bot usando estos comandos:
-
-- *"¿Cuáles son las 5 zonas con el peor Retail CVR esta semana?"*
-- *"Compara el Perfect Order entre zonas Wealthy y Non Wealthy en México."*
-- *"Muéstrame un reporte de anomalías de rentabilidad."*
+> **Solución al Caso Técnico SP&A (Strategy, Planning & Analytics)**  
+> **Desarrollado por:** Selene Jiménez ([selene.jimenez.id@gmail.com](mailto:selene.jimenez.id@gmail.com))  
+> **Repositorio GitHub:** [Operations-Intelligence-Rappi](https://github.com/Selenity-ID/Operations-Intelligence-Rappi)
 
 ---
 
-### 👩‍💻 Autoría
+## 📌 Descripción General
 
-**Selene Jiménez** *Arquitecta y Diseñadora de Soluciones de IA | System Engineer* Especializada en optimización de procesos, migración a infraestructuras Cloud y automatización basada en Inteligencia Artificial. Pasión por dar vida a herramientas inteligentes que antes parecían imposibles.
+**Rappi Operations Intelligence** es un asistente conversacional y dashboard analítico serverless diseñado para democratizar el acceso a métricas operativas de Rappi. 
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin)](#) [![GitHub](https://img.shields.io/badge/GitHub-Profile-black?style=flat&logo=github)](https://github.com/Selenity-ID)
+Permite a los **Operational Managers** y equipos de **SP&A** obtener insights ejecutivos, detectar anomalías críticas de rentabilidad (*Gross Profit UE*) y visualizar curvas de demanda a través de lenguaje natural, eliminando la barrera de escribir consultas SQL complejas o procesar archivos masivos en memoria.
+
+---
+
+## 🚀 Arquitectura del Sistema (El "Orquestador IA")
+
+Para garantizar **escalabilidad a nivel Data Warehouse**, latencia sub-segundo y un uso eficiente de tokens sin alucinaciones, el sistema utiliza un **pipeline desacoplado en dos pasos**:
+
+```
+ [Usuario] ──(Lenguaje Natural)──> [Gemini 3.6 Flash] ──(Parseo a JSON)──> [Express / BigQuery Engine]
+                                                                                   │
+                                                                           (Filtrado SQL & Math)
+                                                                                   │
+ [UI & PDF] <──(Reporte HTML)── [Gemini 3.6 Flash] <──(Micro-Contexto)──────────────┘
+```
+
+1. **Comprensión Semántica (Router IA):** Gemini traduce la intención del usuario a filtros estructurados (métrica exacta, ordenamiento, país, tipo de zona).
+2. **Ejecución en Data Warehouse (BigQuery):** La base de datos o motor SQL realiza la agregación matemática pesada.
+3. **Generación de Insights:** Gemini formatea los micro-resultados en tarjetas de reporte ejecutivo HTML interactivo con exportación a PDF.
+
+---
+
+## ⚡ Características Principales
+
+- 🤖 **Asistente Operativo NL:** Mapeo inteligente de lenguaje natural al diccionario exacto de métricas de Rappi (*Gross Profit UE*, *Retail CVR*, *Breakeven PRO*, *Lead Penetration*).
+- 🚨 **Detección Autónoma de Anomalías:** Algoritmo que escanea automáticamente caídas mayores al 15% WoW en rentabilidad y genera alertas de prioridad.
+- 📊 **Dashboard Visual Interactivo:**
+  - KPI Cards en tiempo real (*Total Orders, Gross Profit UE, Retail CVR, Breakeven PRO*).
+  - Gráfica de evolución de demanda (*ApexCharts* - L8W a L0W).
+  - Tabla de *Top Offenders* (Zonas críticas en pérdida).
+  - Filtros combinables por Países (MX, CO, BR, CL, PE) y Tipos de Zona (*Wealthy / Non Wealthy*).
+- 📄 **Exportación Instantánea a PDF:** Generación e impresión de reportes ejecutivos en un solo clic.
+- 🔒 **Control de Intentos & Autenticación de Admin:**
+  - Límite de 5 consultas gratuitas para usuarios invitados.
+  - Autenticación con Google como Administradora (`selene.jimenez.id@gmail.com`) para habilitar **consultas ilimitadas**.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Backend & Server:** Node.js, Express, TypeScript (`tsx`).
+- **Motor IA:** `@google/genai` (Modelo `gemini-3.6-flash`).
+- **Data Engine:** Simulación/Conector de Google BigQuery (Tablas `Tabla_01` y `Tabla_02`).
+- **Frontend UI:** React 19, TypeScript, Vite.
+- **Estilos & Componentes:** Tailwind CSS v4, Lucide React Icons.
+- **Data Viz:** ApexCharts (`react-apexcharts`).
+
+---
+
+## ⚙️ Configuración e Instalación Local
+
+### Requisitos Previos
+- Node.js >= 18.x
+- NPM / Yarn
+
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/Selenity-ID/Operations-Intelligence-Rappi.git
+cd Operations-Intelligence-Rappi
+```
+
+### 2. Instalar dependencias
+```bash
+npm install
+```
+
+### 3. Configurar variables de entorno
+Crea o edita el archivo `.env` en la raíz del proyecto basándote en `.env.example`:
+```env
+GEMINI_API_KEY="TU_GEMINI_API_KEY"
+```
+
+### 4. Ejecutar en modo desarrollo
+```bash
+npm run dev
+```
+La aplicación estará disponible en `http://localhost:3000`.
+
+### 5. Compilar para producción
+```bash
+npm run build
+npm start
+```
+
+---
+
+## 📖 Diccionario de Métricas Soportadas
+
+| Métrica en Lenguaje Natural | Nombre Exacto en Base de Datos | Descripción |
+| :--- | :--- | :--- |
+| **Gross Profit / Rentabilidad** | `Gross Profit UE` | Utilidad bruta promedio por orden (*Unit Economics*) |
+| **Retail CVR / Conversión Retail** | `Retail SST > SS CVR` | Tasa de conversión de búsqueda a sesión en Retail |
+| **Breakeven PRO** | `% PRO Users Who Breakeven` | Porcentaje de usuarios PRO que recuperan la membresía |
+| **Lead Penetration** | `Lead Penetration` | Conversión de tiendas prospecto a activas |
+| **Órdenes Totales** | `Orders` | Volumen acumulado de pedidos entregados |
+
+---
+
+## 👤 Autora
+
+**Selene Jiménez**  
+- **Email:** [selene.jimenez.id@gmail.com](mailto:selene.jimenez.id@gmail.com)  
+- **GitHub:** [@Selenity-ID](https://github.com/Selenity-ID)  
+- **Proyecto:** Prueba Técnica SP&A - Rappi Operations Intelligence Bot

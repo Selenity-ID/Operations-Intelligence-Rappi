@@ -1,0 +1,6 @@
+{
+  "name": "Rappi Operations Intelligence - Prueba Técnica",
+  "description": "Asistente inteligente de operaciones y dashboard analítico para Rappi (Prueba Técnica) impulsado por Gemini API y arquitectura serverless BigQuery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
